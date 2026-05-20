@@ -566,10 +566,6 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
       <div class="cloud-dot" id="cloud-dot"></div>
       <span id="cloud-status">Tidak terhubung</span>
     </div>
-    <button class="side-nav-btn" onclick="window.location.href='reels.html'">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 10l4.553-2.07A1 1 0 0 1 21 8.83v6.34a1 1 0 0 1-1.447.9L15 14M3 8a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8z"/></svg>
-      Kembali ke Reels
-    </button>
     <button class="side-nav-btn" onclick="window.location.href='profile.html'">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v2h20v-2c0-3.3-6.7-5-10-5z"/></svg>
       Profil Saya
@@ -885,10 +881,6 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v2h20v-2c0-3.3-6.7-5-10-5z"/></svg>
     Profil
   </button>
-  <button class="mob-nav-btn" id="mob-btn-logout" onclick="doLogout()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-    Keluar
-  </button>
 </div>
 
 <div id="toast"></div>
@@ -969,7 +961,6 @@ function showAuthWall() {
       <p>Kamu harus login dengan akun ALVIN untuk mengakses Music Player dan menyimpan playlist kamu.</p>
       <div class="auth-btns">
         <a class="btn-login" href="index.html">Login / Daftar</a>
-        <a class="btn-back" href="reels.html">Kembali</a>
       </div>
     </div>`;
   overlay.style.display = 'flex';
