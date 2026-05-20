@@ -200,6 +200,17 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
 .pv-empty{text-align:center;padding:50px 20px;color:var(--muted);font-size:.83rem;line-height:1.8;}
 .pv-empty-icon{font-size:2.5rem;margin-bottom:12px;}
 
+/* ── OWNER PROFILE CARD (di playlist publik) ── */
+.pv-owner-card{display:flex;align-items:center;gap:14px;margin:0 24px 16px;padding:14px 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;transition:all .2s;text-decoration:none;}
+.pv-owner-card:hover{background:var(--hover);border-color:rgba(29,107,219,.4);transform:translateY(-1px);}
+.pv-owner-avatar{width:44px;height:44px;border-radius:50%;object-fit:cover;background:var(--hover);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.2rem;border:2px solid var(--border);}
+.pv-owner-avatar img{width:44px;height:44px;border-radius:50%;object-fit:cover;}
+.pv-owner-info{flex:1;min-width:0;}
+.pv-owner-label{font-size:.6rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;}
+.pv-owner-name{font-size:.88rem;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pv-owner-arrow{color:var(--muted);display:flex;align-items:center;flex-shrink:0;}
+.pv-owner-arrow svg{width:16px;height:16px;}
+
 /* ── HOME / PLAYLISTS GRID ────────────────────────────────── */
 #home-view{padding:24px;display:none;}
 #home-view.active{display:block;}
@@ -1119,6 +1130,9 @@ function showPlaylistView(plId) {
   if (pubBtn) { pubBtn.style.display = ''; updatePublishBtn(!!pl.public); }
   const covEdit = document.querySelector('.pv-cover-edit');
   if (covEdit) covEdit.style.display = '';
+  // Hapus owner card jika ada (dari playlist publik sebelumnya)
+  const oldCard = document.getElementById('pv-owner-card');
+  if (oldCard) oldCard.remove();
   renderPlaylistView(plId);
   // highlight sidebar
   renderSidebarPlaylists();
@@ -1327,6 +1341,11 @@ function renderPlaylistView(plId) {
 
 // ─── Play All ─────────────────────────────────────────────
 function playAllPlaylist() {
+  // Handle public playlist (milik user lain)
+  if (!currentPlaylistId && currentPubPlaylist) {
+    playPublicPlaylist(currentPubPlaylist);
+    return;
+  }
   if (!currentPlaylistId) return;
   const pl = playlists[currentPlaylistId];
   if (!pl || !pl.tracks.length) { toast('⚠️ Playlist kosong'); return; }
@@ -1928,7 +1947,7 @@ async function toggleLike(e, key, currentlyLiked) {
 
 // Open a public playlist (read-only view)
 let currentPubPlaylist = null;
-function openPublicPlaylist(pl) {
+async function openPublicPlaylist(pl) {
   currentPubPlaylist = pl;
   currentPlaylistId = null; // not an owned playlist
   const tracks = (pl.tracks || []).map(t => ({
@@ -1954,7 +1973,7 @@ function openPublicPlaylist(pl) {
     if (coverEl.tagName === 'IMG') coverEl.outerHTML = `<div class="pv-cover-ph" id="pv-cover">🎵</div>`;
   }
   document.getElementById('pv-title').textContent = pl.name || 'Playlist';
-  document.getElementById('pv-sub').textContent = `${tracks.length} lagu · oleh ${pl.ownerName || 'Anonim'}`;
+  document.getElementById('pv-sub').textContent = `${tracks.length} lagu`;
 
   // Hide edit actions for other people's playlists
   const isOwn = pl.ownerUid === currentUser?.uid;
@@ -1963,6 +1982,61 @@ function openPublicPlaylist(pl) {
   if (pubBtn) pubBtn.style.display = 'none';
   const covEdit = document.querySelector('.pv-cover-edit');
   if (covEdit) covEdit.style.display = 'none';
+
+  // ── Owner Profile Card ──
+  // Hapus card lama kalau ada
+  const oldCard = document.getElementById('pv-owner-card');
+  if (oldCard) oldCard.remove();
+
+  // Ambil foto profil owner dari Firebase
+  const ownerCard = document.createElement('div');
+  ownerCard.id = 'pv-owner-card';
+  ownerCard.className = 'pv-owner-card';
+  const ownerName = pl.ownerName || 'Anonim';
+  ownerCard.innerHTML = `
+    <div class="pv-owner-avatar" id="pv-owner-avatar">
+      <svg viewBox="0 0 24 24" fill="currentColor" style="color:var(--sub);width:22px;height:22px"><path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v2h20v-2c0-3.3-6.7-5-10-5z"/></svg>
+    </div>
+    <div class="pv-owner-info">
+      <div class="pv-owner-label">Dibuat oleh</div>
+      <div class="pv-owner-name">${esc(ownerName)}</div>
+    </div>
+    <div class="pv-owner-arrow">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+    </div>
+  `;
+  // Klik owner card → ke halaman profil owner (jika punya UID)
+  if (pl.ownerUid) {
+    ownerCard.title = 'Lihat profil ' + ownerName;
+    ownerCard.addEventListener('click', () => {
+      window.location.href = 'profile.html?uid=' + encodeURIComponent(pl.ownerUid);
+    });
+    // Load foto profil owner dari DB
+    db.ref('users/' + pl.ownerUid + '/profile').get().then(snap => {
+      if (!snap.exists()) return;
+      const profile = snap.val();
+      const avatarEl = document.getElementById('pv-owner-avatar');
+      if (!avatarEl) return;
+      // Update nama jika lebih baru
+      if (profile.displayName) {
+        const nameEl = ownerCard.querySelector('.pv-owner-name');
+        if (nameEl) nameEl.textContent = profile.displayName;
+      }
+      // Tampilkan foto profil
+      const photoUrl = profile.photoURL || profile.photoBase64 || '';
+      if (photoUrl) {
+        avatarEl.innerHTML = `<img src="${esc(photoUrl)}" alt="${esc(ownerName)}" onerror="this.parentElement.innerHTML='👤'">`;
+      }
+    }).catch(() => {});
+  } else {
+    ownerCard.style.cursor = 'default';
+    const arrowEl = ownerCard.querySelector('.pv-owner-arrow');
+    if (arrowEl) arrowEl.style.display = 'none';
+  }
+
+  // Sisipkan card setelah pv-actions
+  const pvActions = document.querySelector('.pv-actions');
+  if (pvActions) pvActions.after(ownerCard);
 
   const c = document.getElementById('pv-tracks');
   if (!tracks.length) {

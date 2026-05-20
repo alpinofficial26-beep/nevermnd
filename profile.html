@@ -849,6 +849,12 @@ auth.onAuthStateChanged(async user => {
     setTimeout(() => overlay.style.display = 'none', 400);
     await loadProfile();
     await loadMyPlaylists();
+    // Jika ada ?uid= di URL, langsung buka profil user tersebut
+    const params = new URLSearchParams(window.location.search);
+    const viewUid = params.get('uid');
+    if (viewUid && viewUid !== currentUser.uid) {
+      setTimeout(() => openUserProfile(viewUid), 300);
+    }
   } else {
     document.getElementById('auth-overlay').innerHTML = `
       <div class="auth-box">
