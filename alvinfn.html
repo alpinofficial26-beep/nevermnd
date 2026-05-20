@@ -1787,9 +1787,9 @@ function _createPlayer(videoId) {
     events:{
       onReady(e){ e.target.setVolume(parseInt(document.getElementById('vol').value)); e.target.playVideo(); },
       onStateChange(e){
-        if(e.data===YT.PlayerState.PLAYING){ playing=true; setPB(true); tot=YTP.getDuration(); tick(); }
-        else if(e.data===YT.PlayerState.PAUSED){ playing=false; setPB(false); cancelAnimationFrame(raf); }
-        else if(e.data===YT.PlayerState.ENDED){ playing=false; setPB(false); cancelAnimationFrame(raf); playNext(); }
+        if(e.data===YT.PlayerState.PLAYING){ playing=true; setPB(true); tot=YTP.getDuration(); tick(); setMSPlayback('playing'); }
+        else if(e.data===YT.PlayerState.PAUSED){ playing=false; setPB(false); cancelAnimationFrame(raf); setMSPlayback('paused'); }
+        else if(e.data===YT.PlayerState.ENDED){ playing=false; setPB(false); cancelAnimationFrame(raf); setMSPlayback('none'); playNext(); }
       },
       onError(e){ if(e.data===101||e.data===150) toast('⚠️ Video diblokir, coba lagu lain'); }
     }
@@ -1813,10 +1813,14 @@ function setPB(p){
 
 function tick(){
   cancelAnimationFrame(raf);
+  let msThrottle = 0;
   (function loop(){
     if(!playing||!YTP)return;
     try{ cur=YTP.getCurrentTime()||cur; tot=YTP.getDuration()||tot; }catch(e){}
     updProg(); syncLyr(cur);
+    // Update Media Session position state ~every 5s to keep lock screen bar accurate
+    msThrottle++;
+    if(msThrottle % 300 === 0) setMSPlayback('playing');
     raf=requestAnimationFrame(loop);
   })();
 }
@@ -1899,6 +1903,67 @@ async function resolveVid(query){
   }catch(e){ return null; }
 }
 
+// ─── Media Session API ────────────────────────────────────
+(function initMediaSession(){
+  if(!('mediaSession' in navigator)) return;
+
+  // Action handlers — wired once
+  navigator.mediaSession.setActionHandler('play', () => {
+    if(YTP && !playing){ try{ YTP.playVideo(); }catch(e){} }
+  });
+  navigator.mediaSession.setActionHandler('pause', () => {
+    if(YTP && playing){ try{ YTP.pauseVideo(); }catch(e){} }
+  });
+  navigator.mediaSession.setActionHandler('previoustrack', () => { playPrev(); });
+  navigator.mediaSession.setActionHandler('nexttrack',     () => { playNext(); });
+  navigator.mediaSession.setActionHandler('seekto', (d) => {
+    if(YTP && d.seekTime != null){ try{ YTP.seekTo(d.seekTime, true); cur=d.seekTime; updProg(); }catch(e){} }
+  });
+  navigator.mediaSession.setActionHandler('seekbackward', (d) => {
+    const skip = d.seekOffset || 10;
+    if(YTP){ try{ YTP.seekTo(Math.max(0,(YTP.getCurrentTime()||0)-skip),true); }catch(e){} }
+  });
+  navigator.mediaSession.setActionHandler('seekforward', (d) => {
+    const skip = d.seekOffset || 10;
+    if(YTP){ try{ YTP.seekTo((YTP.getCurrentTime()||0)+skip,true); }catch(e){} }
+  });
+})();
+
+function updateMediaSession(track){
+  if(!('mediaSession' in navigator)) return;
+  const artwork = [];
+  if(track.thumb){
+    artwork.push({ src: track.thumb, sizes:'96x96',  type:'image/jpeg' });
+    artwork.push({ src: track.thumb, sizes:'128x128',type:'image/jpeg' });
+    artwork.push({ src: track.thumb, sizes:'256x256',type:'image/jpeg' });
+    artwork.push({ src: track.thumb, sizes:'512x512',type:'image/jpeg' });
+  }
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title:  track.title  || 'Unknown',
+    artist: track.artist || 'Unknown',
+    album:  'ALVINVN Music',
+    artwork
+  });
+  setMSPlayback('none'); // reset — will be updated by onStateChange
+}
+
+function setMSPlayback(state){
+  if(!('mediaSession' in navigator)) return;
+  navigator.mediaSession.playbackState = state; // 'playing' | 'paused' | 'none'
+  // Update position state so the lock screen shows the seek bar
+  if(state === 'playing' && YTP){
+    try{
+      const pos = YTP.getCurrentTime() || 0;
+      const dur = YTP.getDuration()    || 1;
+      navigator.mediaSession.setPositionState({
+        duration:     dur,
+        playbackRate: 1,
+        position:     Math.min(pos, dur)
+      });
+    }catch(e){}
+  }
+}
+
 async function loadPlay(track, fromPlId){
   cancelAnimationFrame(raf); playing=false; cur=0; tot=0; curTrack=track; lyrs=[];
   // Update now playing in playlist view
@@ -1914,6 +1979,9 @@ async function loadPlay(track, fromPlId){
   setBarImg(track);
   document.getElementById('bar-title').textContent=track.title;
   document.getElementById('bar-artist').textContent=track.artist;
+
+  // ── Media Session API ──────────────────────────────────
+  updateMediaSession(track);
 
   // Lyrics panel reset
   document.getElementById('lyr-lines').innerHTML='<div class="lyr-empty"><i>⏳</i>Mencari & memuat lagu...</div>';
