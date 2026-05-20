@@ -1925,7 +1925,7 @@ async function loadPlay(track, fromPlId){
   // Langsung buka fullscreen lyrics
   openFS();
 
-  const searchQ=track._query+' official audio'; toast('🔍 Mencari video...');
+  const searchQ=`${track.artist} ${track.title} official audio`; toast('🔍 Mencari video...');
   const cl=cleanT(track.title);
   const [videoId,lines]=await Promise.all([resolveVid(searchQ),fetchLyr(cl,track.artist)]);
   if(videoId){
@@ -1933,7 +1933,7 @@ async function loadPlay(track, fromPlId){
     await initPlayer(videoId).catch(e=>{console.error('initPlayer error:',e);toast('⚠️ Gagal memuat video, coba lagu lain');});
   }else{
     toast('⚠️ Mencoba fallback...');
-    const fallbackId=await resolveVid(track._query);
+    const fallbackId=await resolveVid(`${track.artist} ${track.title}`);
     if(fallbackId){ await initPlayer(fallbackId).catch(()=>toast('⚠️ Gagal memuat video')); }
     else{ toast('❌ Video tidak ditemukan. Coba lagu lain.'); }
   }
