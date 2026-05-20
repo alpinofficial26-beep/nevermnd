@@ -552,15 +552,43 @@ textarea.form-input { resize: none; line-height: 1.6; }
 .pld-tr-play svg { width: 12px; height: 12px; }
 @media (max-width: 600px) {
   #mob-nav { display: flex; }
-  #app { padding-bottom: 80px; }
+  #app {
+    padding: 0 12px calc(80px + env(safe-area-inset-bottom, 0px));
+  }
+  .profile-header { padding: 20px 0 16px; gap: 12px; }
+  .avatar-ring { width: 86px; height: 86px; }
+  .avatar-inner { font-size: 2.2rem; }
+  #display-name { font-size: 1.3rem; }
+  #user-email { font-size: .73rem; }
+  #user-bio { font-size: .8rem; max-width: 100%; }
   .profile-stats { gap: 20px; }
   .stat-num { font-size: 1.1rem; }
+  .stat-lbl { font-size: .6rem; }
+  .section-card { padding: 16px 14px; }
+  .form-input { font-size: 16px !important; } /* cegah zoom iOS */
+  .cm-input { font-size: 16px !important; }
   .cpc-header { padding: 12px 12px 8px; }
   .cpc-body { padding: 0 12px 10px; }
   .cpc-actions { padding: 4px 6px; }
   .cpc-act-btn { padding: 7px 8px; font-size: .7rem; gap: 4px; }
   .mob-nav-btn { font-size: .5rem; padding: 4px 5px; }
   .mob-nav-btn svg { width: 18px; height: 18px; }
+  #mob-nav {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    height: calc(56px + env(safe-area-inset-bottom, 0px));
+  }
+  .modal-sheet { border-radius: 20px 20px 0 0; padding: 22px 16px 40px; }
+  .sheet-btns { gap: 8px; }
+  #top-nav { padding: 0 14px; }
+  .explore-inner { padding: 12px; }
+  .cpcard { margin-bottom: 12px; border-radius: 12px; }
+  .cpc-name { font-size: .88rem; }
+  .upv-pl-card { padding: 11px 12px; gap: 11px; }
+  .upv-pl-cover { width: 48px; height: 48px; font-size: 1.3rem; }
+  .upv-pl-name { font-size: .85rem; }
+  #toast { bottom: calc(72px + env(safe-area-inset-bottom, 0px)); font-size: .75rem; max-width: 88vw; white-space: normal; text-align: center; }
+  * { max-width: 100%; }
+  body { overflow-x: hidden; }
 }
 </style>
 </head>

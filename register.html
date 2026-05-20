@@ -361,6 +361,116 @@ label {
   background: var(--green); flex-shrink: 0;
   box-shadow: 0 0 8px rgba(29,107,219,0.4);
 }
+
+/* ═══════════════════════════════════════
+   MOBILE STYLES (≤ 480px)
+   ═══════════════════════════════════════ */
+@media (max-width: 480px) {
+  html, body { height: auto; overflow-y: auto; }
+
+  body {
+    align-items: flex-start;
+    min-height: 100dvh;
+    padding: 0;
+  }
+
+  .bg-glow::before { width: 300px; height: 300px; bottom: -60px; right: -80px; }
+  .bg-glow::after  { width: 250px; height: 250px; top: -50px; left: -60px; }
+
+  .page-wrap {
+    padding: 0;
+    max-width: 100%;
+    min-height: 100dvh;
+    align-items: stretch;
+  }
+
+  .card {
+    border-radius: 0;
+    border: none;
+    padding: 24px 20px 40px;
+    min-height: 100dvh;
+    animation: none;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .card::before { border-radius: 0; }
+
+  .logo { margin-bottom: 20px; }
+  .logo-mark { width: 34px; height: 34px; border-radius: 10px; }
+  .logo-mark svg { width: 18px; height: 18px; }
+  .logo-name { font-size: 1.35rem; }
+
+  .heading { margin-bottom: 16px; }
+  .heading h1 { font-size: 1.3rem; }
+  .heading p  { font-size: 0.79rem; }
+
+  /* Progress steps bars */
+  .steps { margin-bottom: 18px; gap: 5px; }
+  .step-bar { height: 4px; }
+
+  /* Sembunyikan perks di mobile (hemat ruang) */
+  .perks { display: none; }
+
+  .form-group { margin-bottom: 13px; }
+  label { font-size: 0.72rem; margin-bottom: 5px; }
+
+  .input-wrap input {
+    padding: 13px 14px 13px 42px;
+    font-size: 16px; /* cegah zoom iOS */
+    border-radius: 13px;
+  }
+
+  /* Password strength bar */
+  .pw-strength { margin-top: 6px; }
+  .strength-bars { gap: 3px; }
+  .strength-bar  { height: 4px; }
+  .strength-label { font-size: 0.7rem; }
+
+  .field-hint { font-size: 0.71rem; }
+
+  /* Terms checkbox */
+  .terms-wrap { margin-bottom: 14px; gap: 9px; }
+  .terms-wrap label { font-size: 0.75rem; }
+  .terms-wrap input[type="checkbox"] { width: 18px; height: 18px; margin-top: 0; }
+
+  /* Error/success */
+  .error-msg, .success-msg { font-size: 0.77rem; padding: 9px 12px; }
+
+  .btn-submit {
+    padding: 15px 24px;
+    font-size: 0.92rem;
+    border-radius: 13px;
+    min-height: 52px;
+    animation: none;
+    opacity: 1;
+  }
+
+  .divider { margin: 14px 0; }
+
+  .btn-google {
+    padding: 14px 24px;
+    font-size: 0.85rem;
+    border-radius: 13px;
+    min-height: 50px;
+  }
+
+  .footer-link { margin-top: 18px; font-size: 0.83rem; }
+
+  /* Animasi form-group — nonaktifkan agar tidak blank */
+  .form-group, .terms-wrap { animation: none; opacity: 1; }
+
+  /* Grid overlay lebih tipis */
+  .grid-overlay { opacity: 0.5; }
+  .note { opacity: 0.04; }
+}
+
+@media (max-width: 360px) {
+  .card { padding: 20px 15px 36px; }
+  .heading h1 { font-size: 1.15rem; }
+  .btn-submit, .btn-google { font-size: 0.83rem; }
+}
 </style>
 </head>
 <body>
