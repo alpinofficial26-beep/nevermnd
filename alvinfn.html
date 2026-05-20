@@ -421,6 +421,8 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
   .mob-nav-btn svg{width:20px;height:20px;transition:all .18s}
   .mob-nav-btn.on{color:var(--green)}
   .mob-nav-btn.on svg{filter:drop-shadow(0 0 6px rgba(29,107,219,.5))}
+  .mob-nav-btn.widget-on{color:#3dda6e}
+  .mob-nav-btn.widget-on svg{filter:drop-shadow(0 0 6px rgba(61,218,110,.5))}
 
   /* ════════════════════════════════
      HOME VIEW
@@ -1154,6 +1156,17 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
     Playlist
   </button>
+  <button class="mob-nav-btn" id="mob-btn-widget" onclick="toggleMediaWidget()" title="Widget Media Player">
+    <svg id="mob-widget-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="7" width="20" height="14" rx="2"/>
+      <path d="M16 3l-4 4-4-4"/>
+      <circle cx="8" cy="14" r="1.5" fill="currentColor" stroke="none"/>
+      <path d="M11 12v4" stroke-width="1.8"/>
+      <path d="M14 11v5" stroke-width="1.8"/>
+      <path d="M17 13v3" stroke-width="1.8"/>
+    </svg>
+    Widget
+  </button>
   <button class="mob-nav-btn" id="mob-btn-profile" onclick="window.location.href='profile.html'">
     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v2h20v-2c0-3.3-6.7-5-10-5z"/></svg>
     Profil
@@ -1258,6 +1271,11 @@ function showApp(user) {
     document.getElementById('home-greeting').textContent = 'Halo, ' + name + ' 👋';
     setCloudStatus('synced', 'Tersimpan · ' + name);
   });
+  // Tampilkan hint widget di mobile saat pertama kali
+  if(window.innerWidth <= 660 && localStorage.getItem('widgetHintShown') !== '1'){
+    localStorage.setItem('widgetHintShown', '1');
+    setTimeout(() => toast('💡 Aktifkan "Widget" di menu bawah agar media player muncul di notifikasi HP'), 2000);
+  }
 }
 
 function showAuthWall() {
@@ -1792,7 +1810,7 @@ function _createPlayer(videoId) {
       onStateChange(e){
         if(e.data===YT.PlayerState.PLAYING){
           playing=true; setPB(true); tot=YTP.getDuration(); tick();
-          _silentAudio.play();      // ← aktifkan audio halaman agar Media Session diakui
+          if(_mediaWidgetEnabled) _silentAudio.play();  // ← aktifkan audio halaman agar Media Session diakui
           setMSPlayback('playing');
         }
         else if(e.data===YT.PlayerState.PAUSED){
@@ -1919,26 +1937,58 @@ async function resolveVid(query){
 }
 
 // ─── Silent Audio — kunci agar Media Session diakui Android ──
-// Browser hanya menampilkan widget player OS jika halaman memiliki
-// elemen <audio>/<video> aktif. Karena audio asli ada di iframe YouTube
-// (cross-origin), kita mainkan file audio silent di halaman ini agar
-// browser "percaya" halaman kita yang mengontrol audio.
+// Kita buat audio silent 5 detik yang di-loop menggunakan AudioContext
+// agar browser menganggap halaman ini benar-benar memutar audio,
+// sehingga widget media player muncul di notifikasi & lock screen.
 const _silentAudio = (function(){
-  // 1 detik audio silent, format WAV base64 (sangat kecil, ~80 byte PCM)
-  const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
-  const audio = new Audio(SILENT_WAV);
-  audio.loop = true;
-  audio.volume = 0;  // volume 0 — tidak terdengar sama sekali
-  // Beberapa browser (iOS Safari) butuh audio.load() sebelum play
-  audio.load();
+  // WAV 5 detik, 1 channel, 8000 Hz, 8-bit PCM — semua sample = 128 (silence)
+  // Header WAV: RIFF(44 byte) + 40000 byte data = 40044 byte total
+  function buildSilentWav(durationSec){
+    const sampleRate = 8000;
+    const numSamples = sampleRate * durationSec;
+    const dataLen    = numSamples; // 8-bit mono = 1 byte/sample
+    const buf = new ArrayBuffer(44 + dataLen);
+    const v   = new DataView(buf);
+    function str(off, s){ for(let i=0;i<s.length;i++) v.setUint8(off+i, s.charCodeAt(i)); }
+    function u16(off, n){ v.setUint16(off, n, true); }
+    function u32(off, n){ v.setUint32(off, n, true); }
+    str(0,'RIFF'); u32(4, 36+dataLen); str(8,'WAVE');
+    str(12,'fmt '); u32(16,16); u16(20,1); u16(22,1);
+    u32(24,sampleRate); u32(28,sampleRate); u16(32,1); u16(34,8);
+    str(36,'data'); u32(40,dataLen);
+    // Isi data dengan 128 (silence untuk unsigned 8-bit PCM)
+    const arr = new Uint8Array(buf, 44);
+    arr.fill(128);
+    const blob = new Blob([buf], {type:'audio/wav'});
+    return URL.createObjectURL(blob);
+  }
+
+  let _url = null;
+  let audio = null;
+  let _enabled = true; // bisa dimatikan pengguna
+
+  function _init(){
+    if(audio) return;
+    try {
+      _url = buildSilentWav(5);
+      audio = new Audio(_url);
+      audio.loop = true;
+      audio.volume = 0.001; // nyaris 0 tapi tidak 0 agar browser tidak optimasi away
+      audio.load();
+    } catch(e){ audio = null; }
+  }
 
   return {
+    setEnabled(v){ _enabled = v; if(!v) { try{ audio && audio.pause(); }catch(e){} } },
+    get enabled(){ return _enabled; },
     play(){
-      // play() mengembalikan Promise; tangkap rejection agar tidak error di konsol
+      if(!_enabled) return;
+      _init();
+      if(!audio) return;
       const p = audio.play();
       if(p && p.catch) p.catch(()=>{});
     },
-    pause(){ try{ audio.pause(); }catch(e){} },
+    pause(){ try{ audio && audio.pause(); }catch(e){} },
     get element(){ return audio; }
   };
 })();
@@ -2003,6 +2053,53 @@ function setMSPlayback(state){
     }catch(e){}
   }
 }
+
+// ─── Media Widget Toggle ──────────────────────────────────
+// Simpan preferensi di localStorage
+let _mediaWidgetEnabled = (localStorage.getItem('mediaWidgetEnabled') !== 'false');
+
+function _applyMediaWidgetState(){
+  const btn = document.getElementById('mob-btn-widget');
+  _silentAudio.setEnabled(_mediaWidgetEnabled);
+  if(btn){
+    if(_mediaWidgetEnabled){
+      btn.classList.add('widget-on');
+    } else {
+      btn.classList.remove('widget-on');
+    }
+  }
+  // Kalau sedang main dan widget diaktifkan, langsung play silent audio
+  if(_mediaWidgetEnabled && playing){
+    _silentAudio.play();
+    if(curTrack) updateMediaSession(curTrack);
+    setMSPlayback(playing ? 'playing' : 'paused');
+  }
+  // Kalau dimatikan, stop silent audio dan reset media session
+  if(!_mediaWidgetEnabled){
+    _silentAudio.pause();
+    if('mediaSession' in navigator){
+      try{ navigator.mediaSession.playbackState = 'none'; }catch(e){}
+      try{ navigator.mediaSession.metadata = null; }catch(e){}
+    }
+  }
+}
+
+function toggleMediaWidget(){
+  _mediaWidgetEnabled = !_mediaWidgetEnabled;
+  localStorage.setItem('mediaWidgetEnabled', _mediaWidgetEnabled);
+  _applyMediaWidgetState();
+  if(_mediaWidgetEnabled){
+    toast('✅ Widget media player diaktifkan\nMuncul di notifikasi & lock screen saat lagu diputar');
+  } else {
+    toast('❌ Widget media player dinonaktifkan');
+  }
+}
+
+// Terapkan state awal saat halaman dimuat
+window.addEventListener('DOMContentLoaded', () => {
+  // Tunda sedikit agar elemen sudah ada
+  setTimeout(_applyMediaWidgetState, 300);
+});
 
 async function loadPlay(track, fromPlId){
   cancelAnimationFrame(raf); playing=false; cur=0; tot=0; curTrack=track; lyrs=[];
