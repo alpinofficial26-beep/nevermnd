@@ -17,7 +17,6 @@
     },
     "public_playlists": {
       ".read": "auth != null",
-      ".indexOn": ["ownerUid", "publishedAt"],
       "$key": {
         ".write": "auth != null && (data.child('ownerUid').val() === auth.uid || !data.exists())",
         "likes": {

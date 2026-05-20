@@ -1475,45 +1475,67 @@ async function openUserProfile(uid) {
   document.getElementById('upv-stat-likes').textContent = '0';
   document.getElementById('upv-playlists').innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--muted);font-size:.83rem;">Memuat...</div>`;
 
+  // ── 1. Load profil dari DB (terpisah dari playlist agar tidak block UI) ──
+  let name = 'Pengguna';
+  let photo = '';
+  let bio = '';
   try {
-    // Load profile data
     const profSnap = await db.ref('users/' + uid + '/profile').get();
-    const prof = profSnap.exists() ? profSnap.val() : {};
-
-    // Also try from cached public users
+    if (profSnap.exists()) {
+      const prof = profSnap.val();
+      name = prof.displayName || name;
+      photo = prof.photoURL || prof.photoBase64 || '';
+      bio = prof.bio || '';
+    }
+  } catch(e) {
+    // Fallback ke cache jika ada
     const cached = allPublicUsers && allPublicUsers[uid];
-    const name = prof.displayName || (cached && cached.displayName) || 'Pengguna';
-    const photo = prof.photoURL || (cached && cached.photoURL) || '';
-    const bio = prof.bio || '';
+    if (cached) { name = cached.displayName || name; photo = cached.photoURL || ''; }
+  }
 
-    document.getElementById('upv-nav-name').textContent = name;
-    document.getElementById('upv-name').textContent = name;
-    document.getElementById('upv-bio').textContent = bio || 'Belum ada deskripsi';
-    document.getElementById('upv-bio').style.fontStyle = bio ? 'normal' : 'italic';
+  document.getElementById('upv-nav-name').textContent = name;
+  document.getElementById('upv-name').textContent = name;
+  document.getElementById('upv-bio').textContent = bio || 'Belum ada deskripsi';
+  document.getElementById('upv-bio').style.fontStyle = bio ? 'normal' : 'italic';
 
-    const avEl = document.getElementById('upv-avatar');
-    if (photo) {
-      avEl.innerHTML = `<img src="${esc(photo)}" alt="" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentNode.textContent='${name.charAt(0).toUpperCase()}'">`;
-    } else {
-      avEl.textContent = name.charAt(0).toUpperCase();
+  const avEl = document.getElementById('upv-avatar');
+  if (photo) {
+    avEl.innerHTML = `<img src="${esc(photo)}" alt="" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentNode.textContent='${name.charAt(0).toUpperCase()}'">`;
+  } else {
+    avEl.textContent = name.charAt(0).toUpperCase();
+  }
+
+  // ── 2. Load public playlists milik user ini ──
+  // Gunakan filter client-side karena orderByChild kadang butuh index khusus
+  try {
+    const plSnap = await db.ref('public_playlists').get();
+    if (!plSnap.exists()) {
+      document.getElementById('upv-playlists').innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--muted);"><div style="font-size:2rem;margin-bottom:8px">🎵</div><div style="font-size:.83rem;">Belum ada playlist publik</div></div>`;
+      return;
     }
 
-    // Load public playlists of this user
-    const plSnap = await db.ref('public_playlists').orderByChild('ownerUid').equalTo(uid).get();
-    if (!plSnap.exists()) {
+    const allPls = plSnap.val();
+    // Filter hanya milik uid ini
+    const userPls = {};
+    for (const key in allPls) {
+      if (allPls[key] && allPls[key].ownerUid === uid) {
+        userPls[key] = allPls[key];
+      }
+    }
+
+    if (!Object.keys(userPls).length) {
       document.getElementById('upv-playlists').innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--muted);"><div style="font-size:2rem;margin-bottom:8px">🎵</div><div style="font-size:.83rem;">Belum ada playlist publik</div></div>`;
       document.getElementById('upv-stat-pl').textContent = '0';
       document.getElementById('upv-stat-likes').textContent = '0';
       return;
     }
 
-    const all = plSnap.val();
-    const keys = Object.keys(all).sort((a,b) => (all[b].publishedAt||0) - (all[a].publishedAt||0));
-    currentViewedPlaylists = all;
+    currentViewedPlaylists = userPls;
+    const keys = Object.keys(userPls).sort((a,b) => (userPls[b].publishedAt||0) - (userPls[a].publishedAt||0));
 
     let totalLikes = 0;
     keys.forEach(k => {
-      const likes = all[k].likes ? Object.keys(all[k].likes).length : 0;
+      const likes = userPls[k].likes ? Object.keys(userPls[k].likes).length : 0;
       totalLikes += likes;
     });
 
@@ -1521,7 +1543,7 @@ async function openUserProfile(uid) {
     document.getElementById('upv-stat-likes').textContent = totalLikes;
 
     document.getElementById('upv-playlists').innerHTML = keys.map(key => {
-      const pl = all[key];
+      const pl = userPls[key];
       const tracks = pl.tracks || [];
       const coverHTML = pl.coverThumb
         ? `<img src="${esc(pl.coverThumb)}" alt="">`
@@ -1541,7 +1563,8 @@ async function openUserProfile(uid) {
     }).join('');
 
   } catch(e) {
-    document.getElementById('upv-playlists').innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--muted);font-size:.83rem;">Gagal memuat profil</div>`;
+    console.error('openUserProfile playlist error:', e);
+    document.getElementById('upv-playlists').innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--muted);font-size:.83rem;">⚠️ Gagal memuat playlist: ${e.message}</div>`;
   }
 }
 
