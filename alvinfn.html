@@ -733,6 +733,12 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
 <aside id="lyr">
   <div class="lyr-head">
     <div class="lyr-ttl">Lirik <span class="lyr-badge">Live</span></div>
+    <button id="lyr-fs-btn" onclick="openFS()" title="Layar penuh" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:6px;border-radius:8px;display:flex;align-items:center;justify-content:center;transition:all .18s;" onmouseover="this.style.color='var(--text)';this.style.background='var(--hover)'" onmouseout="this.style.color='var(--muted)';this.style.background='none'">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="17" height="17">
+        <path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/>
+        <path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
+      </svg>
+    </button>
   </div>
   <div class="lyr-body">
     <div class="lyr-fade-t"></div>
