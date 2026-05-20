@@ -1035,16 +1035,24 @@ function scheduleSave() {
 // Sync updated playlist data to public_playlists node
 async function syncPublicPlaylists() {
   if (!currentUser) return;
+  // Ambil foto profil terkini sekali saja
+  const profileSnap = await db.ref('users/' + currentUser.uid + '/profile').get().catch(()=>null);
+  const profileData = profileSnap?.val() || {};
+  const ownerName = profileData.displayName || currentUser.displayName || currentUser.email.split('@')[0];
+  const ownerPhoto = profileData.photoURL || profileData.photoBase64 || currentUser.photoURL || '';
+
   for (const id in playlists) {
     const pl = playlists[id];
     if (!pl.public) continue;
     const key = currentUser.uid + '_' + id;
     try {
       const snap = await db.ref('public_playlists/' + key).get();
-      if (!snap.exists()) continue; // only update existing public entries
+      if (!snap.exists()) continue;
       await db.ref('public_playlists/' + key).update({
         name: pl.name || 'Playlist',
         coverThumb: pl.coverThumb || '',
+        ownerName,
+        ownerPhoto,
         tracks: (pl.tracks || []).slice(0, 50).map(t => ({
           title: t.title || '',
           artist: t.artist || '',
@@ -2105,14 +2113,16 @@ async function togglePublishPlaylist() {
     } catch(e) { toast('❌ Gagal: ' + e.message); }
   } else {
     // Publish
-    const ownerName = (await db.ref('users/' + currentUser.uid + '/profile/displayName').get().catch(()=>null))?.val()
-      || currentUser.displayName
-      || currentUser.email.split('@')[0];
+    const profileSnap = await db.ref('users/' + currentUser.uid + '/profile').get().catch(()=>null);
+    const profileData = profileSnap?.val() || {};
+    const ownerName = profileData.displayName || currentUser.displayName || currentUser.email.split('@')[0];
+    const ownerPhoto = profileData.photoURL || profileData.photoBase64 || currentUser.photoURL || '';
     try {
       await db.ref('public_playlists/' + key).set({
         name: pl.name || 'Playlist',
         ownerUid: currentUser.uid,
         ownerName,
+        ownerPhoto,
         coverThumb: pl.coverThumb || '',
         tracks: (pl.tracks || []).slice(0, 50).map(t => ({
           title: t.title || '',

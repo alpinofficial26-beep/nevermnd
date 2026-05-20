@@ -1475,24 +1475,48 @@ async function openUserProfile(uid) {
   document.getElementById('upv-stat-likes').textContent = '0';
   document.getElementById('upv-playlists').innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--muted);font-size:.83rem;">Memuat...</div>`;
 
-  // ── 1. Load profil dari DB (terpisah dari playlist agar tidak block UI) ──
-  let name = 'Pengguna';
-  let photo = '';
+  // ── 1. Ambil semua public_playlists dulu (dapat ownerName & ownerPhoto dari sini) ──
+  let userPls = {};
+  let nameFromPl = '';
+  let photoFromPl = '';
+
+  try {
+    const plSnap = await db.ref('public_playlists').get();
+    if (plSnap.exists()) {
+      const allPls = plSnap.val();
+      for (const key in allPls) {
+        const pl = allPls[key];
+        if (pl && pl.ownerUid === uid) {
+          userPls[key] = pl;
+          // Ambil nama & foto dari entry playlist pertama yang ketemu
+          if (!nameFromPl && pl.ownerName) nameFromPl = pl.ownerName;
+          if (!photoFromPl && pl.ownerPhoto) photoFromPl = pl.ownerPhoto;
+        }
+      }
+    }
+  } catch(e) {
+    console.error('Gagal ambil public_playlists:', e);
+  }
+
+  // ── 2. Coba ambil profil lengkap dari users/{uid}/profile ──
+  let name = nameFromPl || 'Pengguna';
+  let photo = photoFromPl || '';
   let bio = '';
+
   try {
     const profSnap = await db.ref('users/' + uid + '/profile').get();
     if (profSnap.exists()) {
       const prof = profSnap.val();
-      name = prof.displayName || name;
-      photo = prof.photoURL || prof.photoBase64 || '';
+      if (prof.displayName) name = prof.displayName;
+      if (prof.photoURL || prof.photoBase64) photo = prof.photoURL || prof.photoBase64;
       bio = prof.bio || '';
     }
   } catch(e) {
-    // Fallback ke cache jika ada
-    const cached = allPublicUsers && allPublicUsers[uid];
-    if (cached) { name = cached.displayName || name; photo = cached.photoURL || ''; }
+    // Tidak apa-apa, sudah ada data dari playlist
+    console.warn('Tidak bisa baca users profile, pakai data dari playlist:', e.message);
   }
 
+  // ── 3. Render header profil ──
   document.getElementById('upv-nav-name').textContent = name;
   document.getElementById('upv-name').textContent = name;
   document.getElementById('upv-bio').textContent = bio || 'Belum ada deskripsi';
@@ -1500,72 +1524,50 @@ async function openUserProfile(uid) {
 
   const avEl = document.getElementById('upv-avatar');
   if (photo) {
-    avEl.innerHTML = `<img src="${esc(photo)}" alt="" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentNode.textContent='${name.charAt(0).toUpperCase()}'">`;
+    avEl.innerHTML = `<img src="${esc(photo)}" alt="${esc(name)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentNode.textContent='${name.charAt(0).toUpperCase()}'">`;
   } else {
     avEl.textContent = name.charAt(0).toUpperCase();
   }
 
-  // ── 2. Load public playlists milik user ini ──
-  // Gunakan filter client-side karena orderByChild kadang butuh index khusus
-  try {
-    const plSnap = await db.ref('public_playlists').get();
-    if (!plSnap.exists()) {
-      document.getElementById('upv-playlists').innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--muted);"><div style="font-size:2rem;margin-bottom:8px">🎵</div><div style="font-size:.83rem;">Belum ada playlist publik</div></div>`;
-      return;
-    }
-
-    const allPls = plSnap.val();
-    // Filter hanya milik uid ini
-    const userPls = {};
-    for (const key in allPls) {
-      if (allPls[key] && allPls[key].ownerUid === uid) {
-        userPls[key] = allPls[key];
-      }
-    }
-
-    if (!Object.keys(userPls).length) {
-      document.getElementById('upv-playlists').innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--muted);"><div style="font-size:2rem;margin-bottom:8px">🎵</div><div style="font-size:.83rem;">Belum ada playlist publik</div></div>`;
-      document.getElementById('upv-stat-pl').textContent = '0';
-      document.getElementById('upv-stat-likes').textContent = '0';
-      return;
-    }
-
-    currentViewedPlaylists = userPls;
-    const keys = Object.keys(userPls).sort((a,b) => (userPls[b].publishedAt||0) - (userPls[a].publishedAt||0));
-
-    let totalLikes = 0;
-    keys.forEach(k => {
-      const likes = userPls[k].likes ? Object.keys(userPls[k].likes).length : 0;
-      totalLikes += likes;
-    });
-
-    document.getElementById('upv-stat-pl').textContent = keys.length;
-    document.getElementById('upv-stat-likes').textContent = totalLikes;
-
-    document.getElementById('upv-playlists').innerHTML = keys.map(key => {
-      const pl = userPls[key];
-      const tracks = pl.tracks || [];
-      const coverHTML = pl.coverThumb
-        ? `<img src="${esc(pl.coverThumb)}" alt="">`
-        : (tracks[0]?.thumb ? `<img src="${esc(tracks[0].thumb)}" alt="">` : '🎵');
-      const likes = pl.likes ? Object.keys(pl.likes).length : 0;
-      return `
-      <div class="upv-pl-card" onclick="openPlDetail('${key}')">
-        <div class="upv-pl-cover">${coverHTML}</div>
-        <div class="upv-pl-info">
-          <div class="upv-pl-name">${esc(pl.name || 'Playlist')}</div>
-          <div class="upv-pl-meta">${tracks.length} lagu · ${likes} suka</div>
-        </div>
-        <button class="upv-pl-play" onclick="event.stopPropagation();openPlDetail('${key}')">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-        </button>
-      </div>`;
-    }).join('');
-
-  } catch(e) {
-    console.error('openUserProfile playlist error:', e);
-    document.getElementById('upv-playlists').innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--muted);font-size:.83rem;">⚠️ Gagal memuat playlist: ${e.message}</div>`;
+  // ── 4. Render playlist ──
+  const keys = Object.keys(userPls);
+  if (!keys.length) {
+    document.getElementById('upv-playlists').innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--muted);"><div style="font-size:2rem;margin-bottom:8px">🎵</div><div style="font-size:.83rem;">Belum ada playlist publik</div></div>`;
+    document.getElementById('upv-stat-pl').textContent = '0';
+    document.getElementById('upv-stat-likes').textContent = '0';
+    return;
   }
+
+  currentViewedPlaylists = userPls;
+  keys.sort((a,b) => (userPls[b].publishedAt||0) - (userPls[a].publishedAt||0));
+
+  let totalLikes = 0;
+  keys.forEach(k => {
+    totalLikes += userPls[k].likes ? Object.keys(userPls[k].likes).length : 0;
+  });
+
+  document.getElementById('upv-stat-pl').textContent = keys.length;
+  document.getElementById('upv-stat-likes').textContent = totalLikes;
+
+  document.getElementById('upv-playlists').innerHTML = keys.map(key => {
+    const pl = userPls[key];
+    const tracks = pl.tracks || [];
+    const coverHTML = pl.coverThumb
+      ? `<img src="${esc(pl.coverThumb)}" alt="">`
+      : (tracks[0]?.thumb ? `<img src="${esc(tracks[0].thumb)}" alt="">` : '🎵');
+    const likes = pl.likes ? Object.keys(pl.likes).length : 0;
+    return `
+    <div class="upv-pl-card" onclick="openPlDetail('${key}')">
+      <div class="upv-pl-cover">${coverHTML}</div>
+      <div class="upv-pl-info">
+        <div class="upv-pl-name">${esc(pl.name || 'Playlist')}</div>
+        <div class="upv-pl-meta">${tracks.length} lagu · ${likes} suka</div>
+      </div>
+      <button class="upv-pl-play" onclick="event.stopPropagation();openPlDetail('${key}')">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+    </div>`;
+  }).join('');
 }
 
 function closeUserProfile() {
