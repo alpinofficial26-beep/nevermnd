@@ -427,16 +427,38 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
   #home-view{padding:16px 14px 10px}
   .home-greeting{font-size:1.2rem}
   .home-sub{font-size:.75rem;margin-bottom:14px}
-  .home-section-title{font-size:.88rem;margin-bottom:10px}
+  .home-section-title{font-size:.88rem;margin-bottom:10px;gap:6px}
+  .home-new-pl-btn{font-size:.7rem;padding:4px 10px;white-space:nowrap;flex-shrink:0}
   .playlists-grid{grid-template-columns:repeat(2,1fr);gap:10px}
   .pl-card{padding:10px;border-radius:12px}
   .pl-card-cover{height:88px;border-radius:8px;font-size:2.2rem}
   .pl-card-name{font-size:.77rem}
   .pl-card-sub{font-size:.67rem}
-  .pub-grid{grid-template-columns:repeat(2,1fr);gap:10px}
-  .pub-card{padding:10px}
-  .rank-item{padding:7px 10px;gap:8px}
-  .rank-cover{width:36px;height:36px}
+  .pub-section{margin-top:20px}
+
+  /* ── Public playlist grid: list style di hp ── */
+  .pub-grid{grid-template-columns:1fr;gap:8px}
+  .pub-card{padding:10px 12px;display:flex;flex-direction:row;align-items:center;gap:10px;border-radius:12px}
+  .pub-cover-wrap{width:52px;height:52px;flex-shrink:0;margin-bottom:0}
+  .pub-card-cover{width:52px!important;height:52px!important;aspect-ratio:1;font-size:1.5rem;border-radius:8px}
+  .pub-card-img{width:52px!important;height:52px!important;border-radius:8px;aspect-ratio:1}
+  .pub-card-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+  .pub-card-name{font-size:.82rem;margin-bottom:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pub-card-bottom{flex-wrap:nowrap;gap:6px;align-items:center;overflow:hidden}
+  .pub-card-owner{font-size:.68rem;min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pub-like-btn{font-size:.68rem;padding:3px 8px;flex-shrink:0;white-space:nowrap;min-width:0}
+  .pub-like-btn svg{width:11px;height:11px}
+  .pub-cover-ov{display:none}
+
+  /* ── Top Ranking: fix like terpotong ── */
+  .rank-grid{gap:5px}
+  .rank-item{padding:8px 10px;gap:8px;display:flex;align-items:center;overflow:hidden}
+  .rank-cover{width:38px;height:38px;flex-shrink:0}
+  .rank-info{flex:1;min-width:0;overflow:hidden}
+  .rank-name{font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rank-owner{font-size:.68rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rank-likes{font-size:.72rem;gap:3px;flex-shrink:0;white-space:nowrap;min-width:36px;justify-content:flex-end}
+  .rank-num{width:22px;font-size:.9rem;flex-shrink:0}
 
   /* ── Search view ── */
   .main-view{padding:14px 14px 10px}
@@ -458,10 +480,11 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
   .pv-top{gap:14px;align-items:center}
   .pv-cover,.pv-cover-ph{width:100px!important;height:100px!important;border-radius:10px!important;font-size:2.8rem!important}
   .pv-title{font-size:1.3rem}.pv-sub{font-size:.73rem}
-  .pv-actions{padding:10px 14px;gap:8px;flex-wrap:wrap}
-  .pv-play-btn{width:44px;height:44px}
+  .pv-actions{padding:10px 14px;gap:6px;flex-wrap:wrap}
+  .pv-play-btn{width:44px;height:44px;flex-shrink:0}
   .pv-play-btn svg{width:18px;height:18px}
-  .pv-action-btn{padding:5px 11px;font-size:.7rem}
+  .pv-action-btn{padding:5px 10px;font-size:.68rem;white-space:nowrap}
+  .pv-publish-btn{padding:5px 10px;font-size:.68rem;white-space:nowrap}
   .pv-tracks{padding:0 14px 18px}
   .track-list-header,.track-row{grid-template-columns:26px 1fr 48px}
   .tr-album{display:none}
@@ -480,14 +503,20 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
   #toast{bottom:132px;font-size:.73rem;padding:8px 16px;max-width:84vw;white-space:normal;text-align:center}
 
   /* ── Fullscreen lyrics ── */
-  #fs-lyr-scroll{padding:16px 5% 140px}
-  .fs-ll{font-size:1.45rem;line-height:1.35}
-  .fs-ll.active{font-size:1.65rem}
-  #fs-bar{padding:12px 18px 20px}
-  #fs-ctrl{gap:14px}
+  #fs-lyr-scroll{padding:16px 6% 150px}
+  .fs-ll{font-size:1.35rem;line-height:1.4;padding:5px 0}
+  .fs-ll.active{font-size:1.55rem}
+  #fs-nav{padding:14px 16px 8px;gap:8px}
+  #fs-track-info{min-width:0}
+  #fs-track-name{font-size:.65rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #fs-artist-name{font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #fs-bar{padding:10px 16px 18px}
+  #fs-ctrl{gap:12px}
   #fs-btn-play{width:46px;height:46px}
   #fs-btn-play svg{width:19px;height:19px}
   .fs-btn svg{width:18px;height:18px}
+  #fs-back,#fs-pure-btn,#fs-bg-btn{width:34px;height:34px;flex-shrink:0}
+  #pure-exit-hint{top:14px;right:14px;font-size:.65rem;padding:6px 12px}
 
   /* ── Empty states ── */
   .empty{padding:36px 18px}
@@ -2096,17 +2125,19 @@ function renderPublicGrid(pls) {
           <svg viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
         </div>
       </div>
-      <div class="pub-card-name">${esc(pl.name || 'Playlist')}</div>
-      <div class="pub-card-bottom">
-        <span class="pub-card-owner">
-          ${isOwn
-            ? `<svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor"><path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v2h20v-2c0-3.3-6.7-5-10-5z"/></svg> Milikmu`
-            : `<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg> ${esc(pl.ownerName || 'Anonim')}`}
-        </span>
-        <button class="pub-like-btn ${pl.iLiked ? 'liked' : ''}" data-key="${esc(pl.key)}" onclick="toggleLike(event,'${esc(pl.key)}',${pl.iLiked})">
-          <svg viewBox="0 0 24 24" fill="${pl.iLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          <span class="like-count-${esc(pl.key)}">${pl.likeCount}</span>
-        </button>
+      <div class="pub-card-body">
+        <div class="pub-card-name">${esc(pl.name || 'Playlist')}</div>
+        <div class="pub-card-bottom">
+          <span class="pub-card-owner">
+            ${isOwn
+              ? `<svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor"><path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v2h20v-2c0-3.3-6.7-5-10-5z"/></svg> Milikmu`
+              : `<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg> ${esc(pl.ownerName || 'Anonim')}`}
+          </span>
+          <button class="pub-like-btn ${pl.iLiked ? 'liked' : ''}" data-key="${esc(pl.key)}" onclick="toggleLike(event,'${esc(pl.key)}',${pl.iLiked})">
+            <svg viewBox="0 0 24 24" fill="${pl.iLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            <span class="like-count-${esc(pl.key)}">${pl.likeCount}</span>
+          </button>
+        </div>
       </div>
     `;
     card.querySelector('.pub-cover-ov').addEventListener('click', e => { e.stopPropagation(); openPublicPlaylist(pl); playPublicPlaylist(pl); });
