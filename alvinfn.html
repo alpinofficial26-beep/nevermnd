@@ -35,6 +35,7 @@
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%;overflow:hidden}
+@supports(height:100dvh){html,body{height:100dvh}}
 body{
   font-family:var(--f);
   background:var(--bg);
@@ -378,6 +379,8 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
     grid-template-rows:1fr 64px 56px;
     grid-template-areas:"main""bar""mob-nav";
     overflow:hidden;
+    height:100dvh;
+    min-height:-webkit-fill-available;
   }
   #side{display:none}
   #lyr{display:none}
@@ -1787,9 +1790,21 @@ function _createPlayer(videoId) {
     events:{
       onReady(e){ e.target.setVolume(parseInt(document.getElementById('vol').value)); e.target.playVideo(); },
       onStateChange(e){
-        if(e.data===YT.PlayerState.PLAYING){ playing=true; setPB(true); tot=YTP.getDuration(); tick(); setMSPlayback('playing'); }
-        else if(e.data===YT.PlayerState.PAUSED){ playing=false; setPB(false); cancelAnimationFrame(raf); setMSPlayback('paused'); }
-        else if(e.data===YT.PlayerState.ENDED){ playing=false; setPB(false); cancelAnimationFrame(raf); setMSPlayback('none'); playNext(); }
+        if(e.data===YT.PlayerState.PLAYING){
+          playing=true; setPB(true); tot=YTP.getDuration(); tick();
+          _silentAudio.play();      // ← aktifkan audio halaman agar Media Session diakui
+          setMSPlayback('playing');
+        }
+        else if(e.data===YT.PlayerState.PAUSED){
+          playing=false; setPB(false); cancelAnimationFrame(raf);
+          _silentAudio.pause();     // ← hentikan silent audio saat pause
+          setMSPlayback('paused');
+        }
+        else if(e.data===YT.PlayerState.ENDED){
+          playing=false; setPB(false); cancelAnimationFrame(raf);
+          _silentAudio.pause();     // ← hentikan silent audio saat selesai
+          setMSPlayback('none'); playNext();
+        }
       },
       onError(e){ if(e.data===101||e.data===150) toast('⚠️ Video diblokir, coba lagu lain'); }
     }
@@ -1902,6 +1917,31 @@ async function resolveVid(query){
     const data=await res.json(); return data.videoId||null;
   }catch(e){ return null; }
 }
+
+// ─── Silent Audio — kunci agar Media Session diakui Android ──
+// Browser hanya menampilkan widget player OS jika halaman memiliki
+// elemen <audio>/<video> aktif. Karena audio asli ada di iframe YouTube
+// (cross-origin), kita mainkan file audio silent di halaman ini agar
+// browser "percaya" halaman kita yang mengontrol audio.
+const _silentAudio = (function(){
+  // 1 detik audio silent, format WAV base64 (sangat kecil, ~80 byte PCM)
+  const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+  const audio = new Audio(SILENT_WAV);
+  audio.loop = true;
+  audio.volume = 0;  // volume 0 — tidak terdengar sama sekali
+  // Beberapa browser (iOS Safari) butuh audio.load() sebelum play
+  audio.load();
+
+  return {
+    play(){
+      // play() mengembalikan Promise; tangkap rejection agar tidak error di konsol
+      const p = audio.play();
+      if(p && p.catch) p.catch(()=>{});
+    },
+    pause(){ try{ audio.pause(); }catch(e){} },
+    get element(){ return audio; }
+  };
+})();
 
 // ─── Media Session API ────────────────────────────────────
 (function initMediaSession(){
