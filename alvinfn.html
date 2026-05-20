@@ -293,6 +293,49 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
 .modal-pl-name{font-size:.82rem;font-weight:600;}
 .modal-pl-count{font-size:.7rem;color:var(--sub);}
 
+/* PUBLIC PLAYLISTS FEED */
+.pub-section{margin-top:32px;}
+.pub-section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.pub-section-title{font-size:1rem;font-weight:700;display:flex;align-items:center;gap:8px;}
+.pub-badge{background:linear-gradient(135deg,rgba(29,107,219,.25),rgba(61,157,214,.15));border:1px solid rgba(29,107,219,.4);color:var(--teal);font-size:.6rem;font-weight:700;letter-spacing:1.5px;padding:2px 9px;border-radius:50px;text-transform:uppercase;}
+.pub-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;}
+.pub-card{background:var(--card);border-radius:var(--r);padding:13px;cursor:pointer;transition:all .22s;border:1px solid transparent;position:relative;overflow:hidden;}
+.pub-card:hover{background:var(--hover);border-color:var(--border);transform:translateY(-2px);box-shadow:0 10px 30px rgba(0,0,0,.3);}
+.pub-card-cover{width:100%;aspect-ratio:1;border-radius:8px;object-fit:cover;background:var(--hover);display:flex;align-items:center;justify-content:center;font-size:2.8rem;margin-bottom:10px;}
+.pub-card-img{width:100%;aspect-ratio:1;border-radius:8px;object-fit:cover;display:block;margin-bottom:10px;}
+.pub-card-name{font-size:.82rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
+.pub-card-meta{font-size:.71rem;color:var(--sub);display:flex;align-items:center;justify-content:space-between;}
+.pub-card-owner{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;}
+.pub-like-btn{display:flex;align-items:center;gap:3px;background:none;border:none;color:var(--sub);font-family:var(--f);font-size:.71rem;cursor:pointer;padding:2px 4px;border-radius:6px;transition:all .18s;flex-shrink:0;}
+.pub-like-btn:hover{color:#ff7eb3;}
+.pub-like-btn.liked{color:#ff4d94;}
+.pub-like-btn svg{width:13px;height:13px;}
+.pub-play-btn{position:absolute;bottom:10px;right:10px;width:34px;height:34px;background:var(--green);border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;opacity:0;cursor:pointer;transition:all .22s;box-shadow:0 4px 14px rgba(29,107,219,.5);}
+.pub-card:hover .pub-play-btn{opacity:1;transform:translateY(-2px);}
+.pub-play-btn svg{width:15px;height:15px;color:#fff;}
+
+/* TOP RANKING */
+.rank-grid{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
+.rank-item{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:var(--rs);background:var(--card);border:1px solid transparent;cursor:pointer;transition:all .18s;}
+.rank-item:hover{background:var(--hover);border-color:var(--border);}
+.rank-num{font-size:1rem;font-weight:800;font-family:var(--fm);width:28px;text-align:center;flex-shrink:0;}
+.rank-num.gold{color:#FFD700;text-shadow:0 0 10px rgba(255,215,0,.4);}
+.rank-num.silver{color:#C0C0C0;}
+.rank-num.bronze{color:#CD7F32;}
+.rank-cover{width:42px;height:42px;border-radius:7px;background:var(--hover);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;overflow:hidden;}
+.rank-cover img{width:100%;height:100%;object-fit:cover;}
+.rank-info{flex:1;min-width:0;}
+.rank-name{font-size:.82rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rank-owner{font-size:.71rem;color:var(--sub);}
+.rank-likes{display:flex;align-items:center;gap:4px;font-size:.75rem;color:#ff7eb3;font-weight:700;flex-shrink:0;}
+.rank-likes svg{width:13px;height:13px;}
+
+/* Publish toggle btn */
+.pv-publish-btn{background:none;border:1px solid var(--border);border-radius:50px;padding:6px 16px;color:var(--sub);font-family:var(--f);font-size:.78rem;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:6px;}
+.pv-publish-btn:hover{color:var(--text);border-color:var(--green);}
+.pv-publish-btn.published{background:rgba(29,107,219,.12);border-color:rgba(29,107,219,.5);color:var(--green);}
+.pv-publish-btn svg{width:14px;height:14px;}
+
 /* TOAST */
 #toast{position:fixed;bottom:105px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--card);border:1px solid var(--border);border-radius:50px;padding:9px 18px;font-size:.8rem;color:var(--text);z-index:9999;opacity:0;transition:all .28s;pointer-events:none;white-space:nowrap}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -378,6 +421,10 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
   .pl-card-cover{height:88px;border-radius:8px;font-size:2.2rem}
   .pl-card-name{font-size:.77rem}
   .pl-card-sub{font-size:.67rem}
+  .pub-grid{grid-template-columns:repeat(2,1fr);gap:10px}
+  .pub-card{padding:10px}
+  .rank-item{padding:7px 10px;gap:8px}
+  .rank-cover{width:36px;height:36px}
 
   /* ── Search view ── */
   .main-view{padding:14px 14px 10px}
@@ -554,6 +601,37 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
         <p>Klik "+ Buat Playlist" untuk memulai</p>
       </div>
     </div>
+
+    <!-- TOP RANKING -->
+    <div class="pub-section" id="top-ranking-section" style="display:none;">
+      <div class="pub-section-header">
+        <div class="pub-section-title">
+          🏆 Top Playlist
+          <span class="pub-badge">Ranking</span>
+        </div>
+      </div>
+      <div class="rank-grid" id="rank-grid"></div>
+    </div>
+
+    <!-- PUBLIC PLAYLISTS FEED -->
+    <div class="pub-section" id="public-feed-section" style="display:none;">
+      <div class="pub-section-header">
+        <div class="pub-section-title">
+          🌐 Playlist Publik
+          <span class="pub-badge">Live</span>
+        </div>
+        <button class="home-new-pl-btn" onclick="loadPublicFeed()" style="background:none;border:1px solid var(--border);color:var(--sub);">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+          Refresh
+        </button>
+      </div>
+      <div class="pub-grid" id="pub-grid">
+        <div class="empty" style="grid-column:1/-1;padding:24px 0;font-size:.82rem;">
+          <i>🌐</i>
+          <h3>Memuat playlist publik...</h3>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- SEARCH VIEW -->
@@ -626,6 +704,10 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
       <button class="pv-action-btn" onclick="openAddSongModal()" style="margin-left:auto;">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
         Tambah Lagu
+      </button>
+      <button class="pv-publish-btn" id="pv-publish-btn" onclick="togglePublishPlaylist()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        Publikasikan
       </button>
       <button class="pv-action-btn" onclick="deleteCurrentPlaylist()" style="color:#ff6b6b;border-color:rgba(255,107,107,.3);">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
@@ -854,6 +936,7 @@ auth.onAuthStateChanged(user => {
     currentUser = user;
     showApp(user);
     loadAllPlaylistsFromCloud();
+    loadPublicFeed();
   } else {
     showAuthWall();
   }
@@ -1030,6 +1113,7 @@ function showSearchView() {
 
 function showPlaylistView(plId) {
   currentPlaylistId = plId;
+  currentPubPlaylist = null;
   const pl = playlists[plId];
   if (!pl) return;
   document.getElementById('home-view').classList.remove('active');
@@ -1037,6 +1121,12 @@ function showPlaylistView(plId) {
   document.getElementById('playlist-view').style.display = 'block';
   document.getElementById('nav-home').classList.remove('on');
   document.getElementById('nav-search').classList.remove('on');
+  // Restore edit actions for own playlists
+  document.querySelectorAll('.pv-action-btn').forEach(b => b.style.display = '');
+  const pubBtn = document.getElementById('pv-publish-btn');
+  if (pubBtn) { pubBtn.style.display = ''; updatePublishBtn(!!pl.public); }
+  const covEdit = document.querySelector('.pv-cover-edit');
+  if (covEdit) covEdit.style.display = '';
   renderPlaylistView(plId);
   // highlight sidebar
   renderSidebarPlaylists();
@@ -1682,6 +1772,284 @@ document.getElementById('fs-btn-play').addEventListener('click',()=>{if(!curTrac
 document.getElementById('fs-btn-next').addEventListener('click',playNext);
 document.getElementById('fs-btn-prev').addEventListener('click',playPrev);
 document.getElementById('fs-prog-track').addEventListener('click',e=>{if(!YTP||!tot)return;const r=e.currentTarget.getBoundingClientRect();YTP.seekTo(((e.clientX-r.left)/r.width)*tot);});
+
+// ─── PUBLIC PLAYLISTS FEED ────────────────────────────────
+let pubLikesCache = {}; // { key: likeCount }
+let myLikes = {}; // { key: true }
+
+async function loadPublicFeed() {
+  if (!currentUser) return;
+  const grid = document.getElementById('pub-grid');
+  const rankGrid = document.getElementById('rank-grid');
+  if (grid) grid.innerHTML = '<div class="empty" style="grid-column:1/-1;padding:24px 0;font-size:.82rem;"><i style="font-size:1.8rem">⏳</i><h3>Memuat...</h3></div>';
+
+  try {
+    // Load my likes
+    const likeSnap = await db.ref('public_playlists').get();
+    if (!likeSnap.exists()) {
+      document.getElementById('public-feed-section').style.display = 'none';
+      document.getElementById('top-ranking-section').style.display = 'none';
+      if (grid) grid.innerHTML = '<div class="empty" style="grid-column:1/-1;padding:24px 0;font-size:.82rem;"><i>🌐</i><h3>Belum ada playlist publik</h3></div>';
+      return;
+    }
+
+    // Load my own likes record
+    const myLikeSnap = await db.ref('public_playlists').get();
+    const allData = likeSnap.val();
+
+    // Build array of playlists with like counts
+    const pls = [];
+    for (const key in allData) {
+      const pl = allData[key];
+      if (!pl || !pl.ownerUid) continue;
+      const likes = pl.likes ? Object.keys(pl.likes).length : 0;
+      const iLiked = pl.likes && pl.likes[currentUser.uid] === true;
+      pls.push({ key, ...pl, likeCount: likes, iLiked });
+    }
+
+    if (!pls.length) {
+      document.getElementById('public-feed-section').style.display = 'none';
+      document.getElementById('top-ranking-section').style.display = 'none';
+      return;
+    }
+
+    document.getElementById('public-feed-section').style.display = 'block';
+    document.getElementById('top-ranking-section').style.display = 'block';
+
+    // Sort by likes for ranking
+    const sorted = [...pls].sort((a,b) => b.likeCount - a.likeCount);
+
+    // Render Top Ranking (top 5)
+    renderRanking(sorted.slice(0, 5));
+
+    // Render public grid (all, sorted by recency if possible)
+    renderPublicGrid(pls);
+
+  } catch(e) {
+    console.error('loadPublicFeed error:', e);
+    if (grid) grid.innerHTML = `<div class="empty" style="grid-column:1/-1;font-size:.82rem;color:var(--sub)">❌ Gagal memuat: ${esc(e.message)}</div>`;
+  }
+}
+
+function renderRanking(items) {
+  const c = document.getElementById('rank-grid');
+  if (!c) return;
+  c.innerHTML = '';
+  items.forEach((pl, i) => {
+    const numClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    const numLabel = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i+1);
+    const div = document.createElement('div');
+    div.className = 'rank-item';
+    div.innerHTML = `
+      <div class="rank-num ${numClass}">${numLabel}</div>
+      <div class="rank-cover">${pl.coverThumb ? `<img src="${esc(pl.coverThumb)}" alt="">` : '🎵'}</div>
+      <div class="rank-info">
+        <div class="rank-name">${esc(pl.name || 'Playlist')}</div>
+        <div class="rank-owner">oleh ${esc(pl.ownerName || 'Anonim')} · ${(pl.tracks||[]).length} lagu</div>
+      </div>
+      <div class="rank-likes">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+        ${pl.likeCount}
+      </div>
+    `;
+    div.addEventListener('click', () => openPublicPlaylist(pl));
+    c.appendChild(div);
+  });
+}
+
+function renderPublicGrid(pls) {
+  const c = document.getElementById('pub-grid');
+  if (!c) return;
+  c.innerHTML = '';
+
+  // Show other users' playlists first, then own published
+  const others = pls.filter(p => p.ownerUid !== currentUser.uid);
+  const mine = pls.filter(p => p.ownerUid === currentUser.uid);
+  const sorted = [...others, ...mine];
+
+  if (!sorted.length) {
+    c.innerHTML = '<div class="empty" style="grid-column:1/-1;padding:24px 0;font-size:.82rem;"><i>🌐</i><h3>Belum ada playlist publik</h3></div>';
+    return;
+  }
+
+  sorted.forEach(pl => {
+    const card = document.createElement('div');
+    card.className = 'pub-card';
+    const isOwn = pl.ownerUid === currentUser.uid;
+    card.innerHTML = `
+      ${pl.coverThumb
+        ? `<img class="pub-card-img" src="${esc(pl.coverThumb)}" alt="cover" onerror="this.style.display='none'">`
+        : `<div class="pub-card-cover">🎵</div>`}
+      <div class="pub-card-name">${esc(pl.name || 'Playlist')}</div>
+      <div class="pub-card-meta">
+        <span class="pub-card-owner">${isOwn ? '👤 Milikmu' : '🎧 ' + esc(pl.ownerName || 'Anonim')}</span>
+        <button class="pub-like-btn ${pl.iLiked ? 'liked' : ''}" data-key="${esc(pl.key)}" onclick="toggleLike(event,'${esc(pl.key)}',${pl.iLiked})">
+          <svg viewBox="0 0 24 24" fill="${pl.iLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          <span class="like-count-${esc(pl.key)}">${pl.likeCount}</span>
+        </button>
+      </div>
+      <button class="pub-play-btn">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+    `;
+    card.querySelector('.pub-play-btn').addEventListener('click', e => { e.stopPropagation(); openPublicPlaylist(pl); playPublicPlaylist(pl); });
+    card.addEventListener('click', () => openPublicPlaylist(pl));
+    c.appendChild(card);
+  });
+}
+
+async function toggleLike(e, key, currentlyLiked) {
+  e.stopPropagation();
+  if (!currentUser) return;
+  const likeRef = db.ref('public_playlists/' + key + '/likes/' + currentUser.uid);
+  const btn = e.currentTarget;
+  const countEl = document.querySelector('.like-count-' + key);
+
+  try {
+    if (currentlyLiked) {
+      await likeRef.remove();
+      btn.classList.remove('liked');
+      btn.querySelector('svg').setAttribute('fill','none');
+      if (countEl) countEl.textContent = Math.max(0, parseInt(countEl.textContent) - 1);
+      btn.setAttribute('onclick', `toggleLike(event,'${key}',false)`);
+    } else {
+      await likeRef.set(true);
+      btn.classList.add('liked');
+      btn.querySelector('svg').setAttribute('fill','currentColor');
+      if (countEl) countEl.textContent = parseInt(countEl.textContent) + 1;
+      btn.setAttribute('onclick', `toggleLike(event,'${key}',true)`);
+      toast('❤️ Playlist disukai!');
+    }
+    // Refresh ranking after like change
+    setTimeout(() => loadPublicFeed(), 500);
+  } catch(err) {
+    toast('❌ Gagal: ' + err.message);
+  }
+}
+
+// Open a public playlist (read-only view)
+let currentPubPlaylist = null;
+function openPublicPlaylist(pl) {
+  currentPubPlaylist = pl;
+  currentPlaylistId = null; // not an owned playlist
+  const tracks = pl.tracks || [];
+
+  document.getElementById('home-view').classList.remove('active');
+  document.getElementById('search-view').classList.remove('active');
+  document.getElementById('playlist-view').style.display = 'block';
+
+  // Fill playlist view with public data (read-only)
+  const coverEl = document.getElementById('pv-cover');
+  if (pl.coverThumb) {
+    if (coverEl.tagName !== 'IMG') coverEl.outerHTML = `<img class="pv-cover" id="pv-cover" src="${esc(pl.coverThumb)}" alt="cover" onclick="">`;
+    else { coverEl.src = pl.coverThumb; coverEl.onclick = null; }
+  } else {
+    if (coverEl.tagName === 'IMG') coverEl.outerHTML = `<div class="pv-cover-ph" id="pv-cover">🎵</div>`;
+  }
+  document.getElementById('pv-title').textContent = pl.name || 'Playlist';
+  document.getElementById('pv-sub').textContent = `${tracks.length} lagu · oleh ${pl.ownerName || 'Anonim'}`;
+
+  // Hide edit actions for other people's playlists
+  const isOwn = pl.ownerUid === currentUser.uid;
+  document.querySelectorAll('.pv-action-btn').forEach(b => b.style.display = isOwn ? '' : 'none');
+  document.getElementById('pv-publish-btn').style.display = 'none';
+  document.querySelector('.pv-cover-edit').style.display = 'none';
+
+  const c = document.getElementById('pv-tracks');
+  if (!tracks.length) {
+    c.innerHTML = `<div class="pv-empty"><div class="pv-empty-icon">🎵</div>Playlist ini kosong.</div>`;
+    return;
+  }
+  c.innerHTML = `<div class="track-list-header"><div class="tl-h">#</div><div class="tl-h">Judul</div><div class="tl-h">Artis</div><div class="tl-h r"></div></div>`;
+  tracks.forEach((t, i) => {
+    const row = document.createElement('div');
+    row.className = 'track-row';
+    const src = t.photo || t.thumb;
+    row.innerHTML = `
+      <div class="tr-num">${i+1}</div>
+      <div class="tr-info">
+        ${src ? `<img class="tr-thumb" src="${esc(src)}" onerror="this.style.display='none'">` : `<div class="tr-thumb-ph">🎵</div>`}
+        <div class="tr-text"><div class="tr-title">${esc(t.title)}</div></div>
+      </div>
+      <div class="tr-album">${esc(t.artist)}</div>
+      <div class="tr-dur"></div>
+    `;
+    row.addEventListener('click', () => {
+      curQueue = tracks.map(tr => ({...tr}));
+      loadPlay(t, null);
+    });
+    c.appendChild(row);
+  });
+}
+
+function playPublicPlaylist(pl) {
+  const tracks = pl.tracks || [];
+  if (!tracks.length) { toast('⚠️ Playlist kosong'); return; }
+  curQueue = [...tracks];
+  loadPlay(tracks[0], null);
+}
+
+// ─── PUBLISH / UNPUBLISH ──────────────────────────────────
+async function togglePublishPlaylist() {
+  if (!currentPlaylistId || !currentUser) return;
+  const pl = playlists[currentPlaylistId];
+  if (!pl) return;
+
+  const key = currentUser.uid + '_' + currentPlaylistId;
+  const isPublic = !!pl.public;
+
+  if (isPublic) {
+    // Unpublish
+    if (!confirm('Hapus playlist "' + pl.name + '" dari feed publik?')) return;
+    try {
+      await db.ref('public_playlists/' + key).remove();
+      pl.public = false;
+      scheduleSave();
+      updatePublishBtn(false);
+      toast('🔒 Playlist disembunyikan dari publik');
+      loadPublicFeed();
+    } catch(e) { toast('❌ Gagal: ' + e.message); }
+  } else {
+    // Publish
+    const ownerName = (await db.ref('users/' + currentUser.uid + '/profile/displayName').get().catch(()=>null))?.val()
+      || currentUser.displayName
+      || currentUser.email.split('@')[0];
+    try {
+      await db.ref('public_playlists/' + key).set({
+        name: pl.name || 'Playlist',
+        ownerUid: currentUser.uid,
+        ownerName,
+        coverThumb: pl.coverThumb || '',
+        tracks: (pl.tracks || []).slice(0, 50).map(t => ({
+          title: t.title || '',
+          artist: t.artist || '',
+          thumb: t.thumb || '',
+          _query: t._query || ''
+        })),
+        likes: {},
+        publishedAt: Date.now()
+      });
+      pl.public = true;
+      scheduleSave();
+      updatePublishBtn(true);
+      toast('🌐 Playlist dipublikasikan!');
+      loadPublicFeed();
+    } catch(e) { toast('❌ Gagal: ' + e.message); }
+  }
+}
+
+function updatePublishBtn(isPublic) {
+  const btn = document.getElementById('pv-publish-btn');
+  if (!btn) return;
+  if (isPublic) {
+    btn.classList.add('published');
+    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg> Sudah Dipublikasi`;
+  } else {
+    btn.classList.remove('published');
+    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="14" height="14"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Publikasikan`;
+  }
+}
+
 </script>
 </body>
 </html>
