@@ -602,8 +602,12 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
     display:flex;align-items:center;justify-content:space-between;
     padding:12px 14px 8px;gap:6px;
   }
-  #fs-back,#fs-pure-btn,#fs-bg-btn{
+  #fs-back,#fs-pure-btn,#fs-bg-btn,#fs-style-btn{
     width:34px;height:34px;flex-shrink:0;
+  }
+  #lyr-style-menu {
+    right: -4px;
+    min-width: 185px;
   }
   #fs-track-info{flex:1;min-width:0;text-align:center;overflow:hidden}
   #fs-track-name{
@@ -775,6 +779,163 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
 .lyr-bg-reset-btn svg { width: 14px; height: 14px; }
 #lyr-bg-file { display: none; }
 .lyr-bg-tip { font-size: .7rem; color: var(--muted); text-align: center; margin-bottom: 14px; line-height: 1.6; }
+
+/* ── LYRIC STYLE BUTTON ──────────────────────────────────── */
+#fs-style-btn {
+  background: rgba(0,0,0,0.3); border: none; border-radius: 50%;
+  width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: #fff; transition: background .2s; flex-shrink: 0;
+  position: relative;
+}
+#fs-style-btn:hover { background: rgba(0,0,0,0.5); }
+#fs-style-btn svg { width: 18px; height: 18px; }
+
+/* Dropdown menu gaya lirik */
+#lyr-style-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: rgba(14,18,32,0.97);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 14px;
+  padding: 6px;
+  min-width: 200px;
+  z-index: 999;
+  display: none;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+#lyr-style-menu.open { display: block; }
+.lyr-style-opt {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: 10px; cursor: pointer;
+  transition: background .15s; font-size: .82rem; font-weight: 600; color: #fff;
+  border: none; background: none; width: 100%; text-align: left; font-family: var(--f);
+}
+.lyr-style-opt:hover { background: rgba(255,255,255,0.08); }
+.lyr-style-opt.active { background: rgba(29,107,219,0.25); color: var(--green); }
+.lyr-style-opt-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-size: 1rem;
+}
+.lyr-style-opt-icon.default-icon { background: rgba(255,255,255,0.1); }
+.lyr-style-opt-icon.kinetic-icon {
+  background: linear-gradient(135deg, rgba(29,107,219,0.4), rgba(61,157,214,0.4));
+}
+.lyr-style-opt-label { flex: 1; }
+.lyr-style-opt-sub { font-size: .65rem; font-weight: 400; color: rgba(255,255,255,0.45); margin-top:1px; }
+.lyr-style-check {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--green); display: none; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.lyr-style-opt.active .lyr-style-check { display: flex; }
+.lyr-style-check svg { width: 10px; height: 10px; color: #fff; }
+
+/* ── KINETIC TYPOGRAPHY MODE ─────────────────────────────── */
+/* Container kinetic */
+#fs-lyr.kinetic-mode #fs-lyr-scroll { padding: 40px 6% 160px; }
+
+/* Baris lirik kinetic — tersembunyi secara default */
+#fs-lyr.kinetic-mode .fs-ll {
+  font-size: 1.4rem;
+  font-weight: 800;
+  line-height: 1.6;
+  padding: 10px 0;
+  color: rgba(255,255,255,0.12);
+  transition: color .6s ease, filter .6s ease;
+  letter-spacing: -0.3px;
+  overflow: hidden;
+}
+#fs-lyr.kinetic-mode .fs-ll.past {
+  color: rgba(255,255,255,0.1);
+  filter: blur(1px);
+}
+#fs-lyr.kinetic-mode .fs-ll.upcoming {
+  color: rgba(255,255,255,0.12);
+}
+/* Baris aktif — kata-kata dirender sebagai span */
+#fs-lyr.kinetic-mode .fs-ll.active {
+  color: transparent; /* teks asli tersembunyi, kata-kata pakai span */
+  filter: none;
+  font-size: 1.75rem;
+}
+@media(max-width:700px) {
+  #fs-lyr.kinetic-mode .fs-ll { font-size: 1.1rem; }
+  #fs-lyr.kinetic-mode .fs-ll.active { font-size: 1.3rem; }
+}
+
+/* Span per kata */
+.kt-word {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(18px) scale(0.88);
+  filter: blur(6px);
+  transition: opacity .38s cubic-bezier(.22,.68,0,1.2),
+              transform .42s cubic-bezier(.22,.68,0,1.2),
+              filter .38s ease,
+              color .3s ease;
+  margin-right: 0.22em;
+  color: #fff;
+  will-change: transform, opacity, filter;
+}
+.kt-word.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: blur(0px);
+}
+/* Efek beat pulse pada kata aktif */
+.kt-word.beat {
+  animation: kt-beat .18s ease-out;
+}
+@keyframes kt-beat {
+  0%   { transform: scale(1.18); filter: blur(0px); }
+  60%  { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
+/* Gradient warna per kata (efek shimmer) */
+.kt-word.w0 { color: #fff; }
+.kt-word.w1 { color: rgba(255,255,255,0.92); }
+.kt-word.w2 { color: rgba(180,210,255,0.95); }
+.kt-word.w3 { color: #fff; }
+.kt-word.w4 { color: rgba(200,225,255,0.9); }
+
+/* Motion blur saat transisi garis */
+.fs-ll.kt-exit {
+  animation: kt-exit-anim .35s ease-in forwards;
+}
+@keyframes kt-exit-anim {
+  from { opacity:1; filter: blur(0px); transform: translateY(0); }
+  to   { opacity:0; filter: blur(8px); transform: translateY(-12px); }
+}
+.fs-ll.kt-enter {
+  animation: kt-enter-anim .45s cubic-bezier(.22,.68,0,1.2) forwards;
+}
+@keyframes kt-enter-anim {
+  from { opacity:0; filter: blur(10px); transform: translateY(20px) scale(0.92); }
+  to   { opacity:1; filter: blur(0px); transform: translateY(0) scale(1); }
+}
+
+/* Beat indicator saat musik aktif */
+#fs-lyr.kinetic-mode #fs-lyr-scroll::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--green), var(--teal), transparent);
+  opacity: 0;
+  transition: opacity .2s;
+  pointer-events: none;
+  z-index: 10;
+}
+#fs-lyr.kinetic-mode.playing-beat #fs-lyr-scroll::before {
+  opacity: 1;
+  animation: beat-bar .4s ease-out;
+}
+@keyframes beat-bar {
+  0%   { transform: scaleX(0.4); opacity:1; }
+  100% { transform: scaleX(1);   opacity:0; }
+}
 </style>
 <body>
 
@@ -1104,6 +1265,36 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
         <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
         <path d="m21 15-5-5L5 21"/>
       </svg>
+    </button>
+    <!-- Lyric Style Button -->
+    <button id="fs-style-btn" title="Gaya teks lirik">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/>
+        <line x1="12" y1="4" x2="12" y2="20"/>
+      </svg>
+      <!-- Dropdown menu -->
+      <div id="lyr-style-menu">
+        <button class="lyr-style-opt active" id="style-opt-default" onclick="setLyrStyle('default',event)">
+          <div class="lyr-style-opt-icon default-icon">📄</div>
+          <div class="lyr-style-opt-label">
+            <div>Default</div>
+            <div class="lyr-style-opt-sub">Tampilan lirik standar</div>
+          </div>
+          <div class="lyr-style-check">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+        </button>
+        <button class="lyr-style-opt" id="style-opt-kinetic" onclick="setLyrStyle('kinetic',event)">
+          <div class="lyr-style-opt-icon kinetic-icon">✨</div>
+          <div class="lyr-style-opt-label">
+            <div>Kinetic Typography</div>
+            <div class="lyr-style-opt-sub">Kata bergerak mengikuti beat</div>
+          </div>
+          <div class="lyr-style-check">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+        </button>
+      </div>
     </button>
     <button id="fs-pure-btn" title="Mode lirik penuh">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -2138,6 +2329,169 @@ closeFS = function() {
     document.getElementById('fs-back').style.pointerEvents = '';
   }
   _origCloseFS();
+};
+
+// ─── LYRIC STYLE: DEFAULT & KINETIC TYPOGRAPHY ───────────
+let _lyrStyle = 'default'; // 'default' | 'kinetic'
+let _ktWordTimers = [];
+let _ktCurrentIdx = -1;
+let _ktBeatTimerRAF = null;
+
+// Toggle dropdown menu gaya lirik
+document.getElementById('fs-style-btn').addEventListener('click', function(e) {
+  e.stopPropagation();
+  document.getElementById('lyr-style-menu').classList.toggle('open');
+});
+document.addEventListener('click', function(e) {
+  const menu = document.getElementById('lyr-style-menu');
+  if (menu && !document.getElementById('fs-style-btn').contains(e.target)) {
+    menu.classList.remove('open');
+  }
+});
+
+function setLyrStyle(style, e) {
+  if (e) e.stopPropagation();
+  _lyrStyle = style;
+  const fsEl = document.getElementById('fs-lyr');
+
+  // Update tombol aktif
+  document.querySelectorAll('.lyr-style-opt').forEach(o => o.classList.remove('active'));
+  document.getElementById('style-opt-' + style).classList.add('active');
+
+  // Terapkan / hapus kelas kinetic
+  if (style === 'kinetic') {
+    fsEl.classList.add('kinetic-mode');
+  } else {
+    fsEl.classList.remove('kinetic-mode');
+    _clearKtTimers();
+  }
+  // Tutup menu
+  document.getElementById('lyr-style-menu').classList.remove('open');
+  // Re-render lirik dengan gaya baru
+  updateFSLyr();
+  toast(style === 'kinetic' ? '✨ Kinetic Typography aktif' : '📄 Gaya default aktif');
+}
+
+// Bersihkan timer kinetic
+function _clearKtTimers() {
+  _ktWordTimers.forEach(clearTimeout);
+  _ktWordTimers = [];
+  if (_ktBeatTimerRAF) cancelAnimationFrame(_ktBeatTimerRAF);
+}
+
+// Render kata per kata dengan animasi stagger
+function _renderKineticLine(lineEl, text) {
+  _clearKtTimers();
+  lineEl.textContent = ''; // hapus teks asli
+  const words = text.split(/\s+/).filter(Boolean);
+  words.forEach((word, i) => {
+    const span = document.createElement('span');
+    span.className = 'kt-word w' + (i % 5);
+    span.textContent = word;
+    lineEl.appendChild(span);
+    // Stagger tiap kata: 0, 55, 110, 165, ...ms
+    const delay = i * 55;
+    const t = setTimeout(() => {
+      span.classList.add('visible');
+      // beat effect pada setiap kata
+      setTimeout(() => span.classList.add('beat'), 10);
+      setTimeout(() => span.classList.remove('beat'), 200);
+    }, delay);
+    _ktWordTimers.push(t);
+  });
+}
+
+// Override updateFSLyr untuk support kinetic mode
+const _origUpdateFSLyr = updateFSLyr;
+updateFSLyr = function() {
+  const el = document.getElementById('fs-lyr-scroll');
+  if (!lyrs.length) {
+    el.innerHTML = '<div class="lyr-empty" style="color:rgba(255,255,255,0.4);padding-top:80px"><i>😔</i>Lirik tidak tersedia</div>';
+    _ktCurrentIdx = -1;
+    return;
+  }
+
+  let idx = 0;
+  for (let i = 0; i < lyrs.length; i++) { if (cur >= lyrs[i].time) idx = i; else break; }
+
+  if (_lyrStyle !== 'kinetic') {
+    // ── DEFAULT MODE ──
+    _ktCurrentIdx = -1;
+    el.innerHTML = '';
+    lyrs.forEach((l, i) => {
+      const d = document.createElement('div');
+      d.className = 'fs-ll ' + (i === idx ? 'active' : i < idx ? 'past' : '');
+      d.textContent = l.text;
+      d.addEventListener('click', () => { if (YTP) YTP.seekTo(l.time); });
+      el.appendChild(d);
+    });
+    const act = el.querySelectorAll('.fs-ll')[idx];
+    if (act) el.scrollTo({ top: act.offsetTop - el.offsetHeight / 2 + act.offsetHeight / 2, behavior: 'smooth' });
+    return;
+  }
+
+  // ── KINETIC MODE ──
+  // Kalau indeks tidak berubah, skip re-render penuh
+  if (idx === _ktCurrentIdx) return;
+
+  const prevIdx = _ktCurrentIdx;
+  _ktCurrentIdx = idx;
+
+  // Kalau pertama kali atau beda jauh: render semua
+  if (prevIdx === -1 || Math.abs(idx - prevIdx) > 3) {
+    el.innerHTML = '';
+    lyrs.forEach((l, i) => {
+      const d = document.createElement('div');
+      d.className = 'fs-ll ' + (i === idx ? 'active' : i < idx ? 'past' : 'upcoming');
+      if (i === idx) {
+        _renderKineticLine(d, l.text);
+      } else {
+        d.textContent = l.text;
+      }
+      d.addEventListener('click', () => { if (YTP) YTP.seekTo(l.time); });
+      el.appendChild(d);
+    });
+  } else {
+    // Update incremental: ubah kelas tanpa rebuild DOM
+    const allLines = el.querySelectorAll('.fs-ll');
+    // Baris lama yang aktif → transisi keluar
+    if (prevIdx >= 0 && allLines[prevIdx]) {
+      const prevLine = allLines[prevIdx];
+      prevLine.classList.remove('active');
+      prevLine.classList.add('past', 'kt-exit');
+      // Setelah animasi selesai, hapus class animasi
+      setTimeout(() => {
+        prevLine.classList.remove('kt-exit');
+        // Kembalikan teks plain
+        if (!prevLine.dataset.plain) prevLine.dataset.plain = prevLine.innerText;
+        prevLine.textContent = prevLine.dataset.plain || '';
+      }, 380);
+    }
+    // Baris baru → aktif dengan animasi masuk kata per kata
+    if (allLines[idx]) {
+      const newLine = allLines[idx];
+      newLine.classList.remove('upcoming', 'past', 'kt-exit');
+      newLine.classList.add('active', 'kt-enter');
+      setTimeout(() => newLine.classList.remove('kt-enter'), 500);
+      _renderKineticLine(newLine, lyrs[idx].text);
+    }
+    // Update kelas upcoming
+    allLines.forEach((line, i) => {
+      if (i !== idx && i !== prevIdx) {
+        line.classList.remove('active', 'upcoming');
+        line.classList.add(i < idx ? 'past' : 'upcoming');
+      }
+    });
+  }
+
+  // Scroll ke baris aktif
+  const act = el.querySelectorAll('.fs-ll')[idx];
+  if (act) el.scrollTo({ top: act.offsetTop - el.offsetHeight / 2 + act.offsetHeight / 2, behavior: 'smooth' });
+
+  // Beat indicator bar
+  const fsEl = document.getElementById('fs-lyr');
+  fsEl.classList.add('playing-beat');
+  setTimeout(() => fsEl.classList.remove('playing-beat'), 450);
 };
 
 // ─── PUBLIC PLAYLISTS FEED ────────────────────────────────
