@@ -389,6 +389,78 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
 .comment-empty span{display:block;font-size:1.6rem;margin-bottom:6px;}
 .comment-loading{text-align:center;padding:16px 0;color:var(--muted);font-size:.78rem;}
 
+/* ── LIKE, REPLY, PHOTO COMMENT ─── */
+.comment-actions{display:flex;align-items:center;gap:10px;margin-top:5px;}
+.comment-like-btn{background:none;border:none;color:var(--muted);cursor:pointer;padding:0;font-size:.7rem;font-family:var(--f);font-weight:600;display:flex;align-items:center;gap:3px;transition:all .18s;line-height:1;}
+.comment-like-btn:hover{color:#ff5f7e;}
+.comment-like-btn.liked{color:#ff5f7e;}
+.comment-like-btn svg{width:12px;height:12px;transition:transform .18s;}
+.comment-like-btn:active svg{transform:scale(1.4);}
+.comment-reply-btn{background:none;border:none;color:var(--muted);cursor:pointer;padding:0;font-size:.7rem;font-family:var(--f);font-weight:600;display:flex;align-items:center;gap:3px;transition:color .18s;line-height:1;}
+.comment-reply-btn:hover{color:var(--green);}
+.comment-reply-btn svg{width:11px;height:11px;}
+
+/* Photo in comment */
+.comment-photo-img{max-width:200px;max-height:160px;border-radius:10px;margin-top:7px;object-fit:cover;cursor:pointer;border:1px solid var(--border);display:block;transition:opacity .2s;}
+.comment-photo-img:hover{opacity:.85;}
+
+/* Reply thread */
+.comment-replies{margin-top:8px;padding-left:14px;border-left:2px solid var(--border);display:flex;flex-direction:column;gap:10px;}
+.comment-reply-item{display:flex;gap:8px;align-items:flex-start;}
+.comment-reply-avatar{width:26px;height:26px;border-radius:50%;background:var(--hover);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.65rem;overflow:hidden;}
+.comment-reply-avatar img{width:26px;height:26px;border-radius:50%;object-fit:cover;}
+.comment-reply-bubble{flex:1;min-width:0;}
+.comment-reply-meta{display:flex;align-items:baseline;gap:6px;margin-bottom:2px;}
+.comment-reply-name{font-size:.72rem;font-weight:700;color:var(--text);}
+.comment-reply-time{font-size:.63rem;color:var(--muted);}
+.comment-reply-text{font-size:.77rem;color:var(--sub);line-height:1.5;word-break:break-word;}
+.comment-reply-photo{max-width:160px;max-height:120px;border-radius:8px;margin-top:6px;object-fit:cover;cursor:pointer;border:1px solid var(--border);display:block;}
+.comment-reply-actions{display:flex;gap:8px;margin-top:4px;}
+.comment-reply-del-btn{background:none;border:none;color:var(--muted);cursor:pointer;padding:0 2px;border-radius:4px;font-size:.65rem;opacity:0;transition:all .15s;}
+.comment-reply-item:hover .comment-reply-del-btn{opacity:1;}
+.comment-reply-del-btn:hover{color:#ff5555;}
+
+/* Inline reply input */
+.reply-input-wrap{margin-top:8px;padding-left:14px;border-left:2px solid rgba(29,107,219,.25);display:flex;gap:8px;align-items:flex-start;}
+.reply-avatar-self{width:26px;height:26px;border-radius:50%;background:var(--hover);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.65rem;overflow:hidden;}
+.reply-avatar-self img{width:26px;height:26px;border-radius:50%;object-fit:cover;}
+.reply-box{flex:1;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;transition:border-color .2s;}
+.reply-box:focus-within{border-color:rgba(29,107,219,.5);}
+.reply-textarea{background:none;border:none;outline:none;resize:none;font-family:var(--f);font-size:.78rem;color:var(--text);width:100%;min-height:28px;max-height:80px;line-height:1.5;overflow-y:auto;}
+.reply-textarea::placeholder{color:var(--muted);}
+.reply-bottom-row{display:flex;align-items:center;justify-content:space-between;gap:6px;}
+.reply-photo-btn{background:none;border:none;color:var(--muted);cursor:pointer;padding:2px 5px;border-radius:6px;display:flex;align-items:center;gap:4px;font-family:var(--f);font-size:.68rem;transition:all .18s;}
+.reply-photo-btn:hover{color:var(--green);background:var(--green-dim);}
+.reply-photo-btn svg{width:12px;height:12px;}
+.reply-send-btn{background:var(--green);border:none;border-radius:50px;padding:5px 13px;color:#fff;font-family:var(--f);font-weight:700;font-size:.7rem;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:4px;}
+.reply-send-btn:hover{box-shadow:var(--green-glow);}
+.reply-send-btn:disabled{opacity:.4;cursor:not-allowed;}
+.reply-cancel-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-family:var(--f);font-size:.7rem;padding:4px 8px;border-radius:6px;transition:color .15s;}
+.reply-cancel-btn:hover{color:var(--text);}
+.reply-preview-photo{width:48px;height:48px;border-radius:7px;object-fit:cover;border:1px solid var(--border);}
+.reply-preview-row{display:flex;align-items:center;gap:6px;}
+.reply-preview-remove{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.75rem;padding:2px 4px;border-radius:4px;transition:color .15s;}
+.reply-preview-remove:hover{color:#ff5555;}
+
+/* Comment photo upload row */
+.comment-photo-row{display:flex;align-items:center;gap:8px;}
+.comment-photo-btn{background:none;border:none;color:var(--muted);cursor:pointer;padding:3px 7px;border-radius:7px;display:flex;align-items:center;gap:5px;font-family:var(--f);font-size:.72rem;transition:all .18s;}
+.comment-photo-btn:hover{color:var(--green);background:var(--green-dim);}
+.comment-photo-btn svg{width:13px;height:13px;}
+.comment-photo-preview{width:52px;height:52px;border-radius:8px;object-fit:cover;border:1px solid var(--border);}
+.comment-photo-remove{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.78rem;padding:2px 5px;border-radius:5px;transition:color .15s;}
+.comment-photo-remove:hover{color:#ff5555;}
+
+/* Fullscreen image viewer */
+#img-viewer{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;cursor:zoom-out;backdrop-filter:blur(8px);}
+#img-viewer.open{display:flex;}
+#img-viewer img{max-width:90vw;max-height:90vh;border-radius:12px;box-shadow:0 20px 80px rgba(0,0,0,.8);object-fit:contain;}
+#img-viewer-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.12);border:none;color:#fff;width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;transition:background .15s;}
+#img-viewer-close:hover{background:rgba(255,255,255,.22);}
+
+/* Notif like komentar */
+.notif-icon-comment-like { background: rgba(255,90,90,.15); }
+
 /* Tombol komentar di pub-card (beranda) */
 .pub-comment-btn{display:flex;align-items:center;gap:3px;background:var(--bg);border:1px solid var(--border);color:var(--sub);font-family:var(--f);font-size:.7rem;cursor:pointer;padding:4px 8px;border-radius:50px;transition:all .18s;flex-shrink:0;white-space:nowrap;}
 .pub-comment-btn:hover{color:var(--teal);border-color:rgba(61,157,214,.35);background:rgba(61,157,214,.06);}
@@ -1349,7 +1421,16 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
         <div class="comment-avatar-self" id="pv-comment-self-avatar">👤</div>
         <div class="comment-box">
           <textarea class="comment-textarea" id="pv-comment-textarea" placeholder="Tulis komentar..." rows="1"></textarea>
-          <div class="comment-send-row">
+          <div id="pv-comment-photo-preview-row" style="display:none;" class="reply-preview-row">
+            <img id="pv-comment-photo-preview" class="comment-photo-preview" src="" alt="">
+            <button class="reply-preview-remove" onclick="removePvCommentPhoto()" title="Hapus foto">✕</button>
+          </div>
+          <div class="comment-send-row" style="justify-content:space-between;">
+            <button class="comment-photo-btn" id="pv-comment-photo-btn" onclick="document.getElementById('pv-comment-photo-input').click()" title="Bagikan foto">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+              Foto
+            </button>
+            <input type="file" id="pv-comment-photo-input" accept="image/*" style="display:none;" onchange="onPvCommentPhotoSelected(event)">
             <button class="comment-send-btn" id="pv-comment-send-btn" disabled>
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
               Kirim
@@ -1364,6 +1445,12 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
   </div>
 
 </main>
+
+<!-- IMAGE VIEWER FULLSCREEN -->
+<div id="img-viewer" onclick="closeImgViewer()">
+  <button id="img-viewer-close" onclick="closeImgViewer()">✕</button>
+  <img id="img-viewer-img" src="" alt="">
+</div>
 
 <!-- MODAL KOMENTAR (dari beranda pub-card) -->
 <div id="comment-modal">
@@ -1385,7 +1472,16 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
         <div class="comment-avatar-self" id="cm-modal-self-avatar">👤</div>
         <div class="comment-box">
           <textarea class="comment-textarea" id="cm-modal-textarea" placeholder="Tulis komentar..." rows="1"></textarea>
-          <div class="comment-send-row">
+          <div id="cm-modal-photo-preview-row" style="display:none;" class="reply-preview-row">
+            <img id="cm-modal-photo-preview" class="comment-photo-preview" src="" alt="">
+            <button class="reply-preview-remove" onclick="removeCmModalPhoto()" title="Hapus foto">✕</button>
+          </div>
+          <div class="comment-send-row" style="justify-content:space-between;">
+            <button class="comment-photo-btn" onclick="document.getElementById('cm-modal-photo-input').click()" title="Bagikan foto">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+              Foto
+            </button>
+            <input type="file" id="cm-modal-photo-input" accept="image/*" style="display:none;" onchange="onCmModalPhotoSelected(event)">
             <button class="comment-send-btn" id="cm-modal-send-btn" disabled>
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
               Kirim
@@ -3490,7 +3586,6 @@ function renderNotifications(notifs) {
     list.innerHTML = `<div class="notif-empty"><span>🔔</span>Belum ada notifikasi.<br>Saat ada yang like atau<br>komentar playlistmu,<br>akan muncul di sini.</div>`;
     return;
   }
-  // Sort terbaru dulu
   const sorted = [...notifs].sort((a, b) => (b.ts || 0) - (a.ts || 0));
   list.innerHTML = '';
   sorted.forEach(n => {
@@ -3498,9 +3593,23 @@ function renderNotifications(notifs) {
     item.className = 'notif-item' + (n.read ? '' : ' unread');
 
     const isLike = n.type === 'like';
-    const icon = isLike
-      ? `<div class="notif-icon-wrap notif-icon-like">❤️</div>`
-      : `<div class="notif-icon-wrap notif-icon-comment">💬</div>`;
+    const isCommentLike = n.type === 'comment_like';
+    const isReply = n.type === 'comment_reply';
+
+    let icon, actionText;
+    if (isLike) {
+      icon = `<div class="notif-icon-wrap notif-icon-like">❤️</div>`;
+      actionText = `menyukai playlist <span class="notif-pl">${esc(n.playlistName || 'playlist')}</span>mu`;
+    } else if (isCommentLike) {
+      icon = `<div class="notif-icon-wrap notif-icon-comment-like">❤️</div>`;
+      actionText = `menyukai komentarmu di <span class="notif-pl">${esc(n.playlistName || 'playlist')}</span>`;
+    } else if (isReply) {
+      icon = `<div class="notif-icon-wrap notif-icon-comment">↩️</div>`;
+      actionText = `membalas komentarmu di <span class="notif-pl">${esc(n.playlistName || 'playlist')}</span>`;
+    } else {
+      icon = `<div class="notif-icon-wrap notif-icon-comment">💬</div>`;
+      actionText = `mengomentari playlist <span class="notif-pl">${esc(n.playlistName || 'playlist')}</span>mu`;
+    }
 
     const photo = n.fromPhoto
       ? `<div class="notif-avatar"><img src="${esc(n.fromPhoto)}" alt="" onerror="this.parentElement.textContent='👤'"></div>`
@@ -3515,8 +3624,7 @@ function renderNotifications(notifs) {
       <div class="notif-body">
         <div class="notif-msg">
           <strong>${esc(n.fromName || 'Seseorang')}</strong>
-          ${isLike ? 'menyukai' : 'mengomentari'}
-          playlist <span class="notif-pl">${esc(n.playlistName || 'playlist')}</span>mu
+          ${actionText}
         </div>
         ${commentPrev}
         <div class="notif-time">
@@ -3557,7 +3665,102 @@ function startNotifListeners() {
 }
 
 // Helper: kirim notifikasi komentar ke owner playlist
-// Panggil ini dari manapun setelah komentar berhasil ditulis ke DB
+// ════════════════════════════════════════════════════════════
+//  SISTEM KOMENTAR LENGKAP: LIKE · REPLY · FOTO · NOTIFIKASI
+// ════════════════════════════════════════════════════════════
+
+// ── Image viewer fullscreen ──
+function openImgViewer(src) {
+  const v = document.getElementById('img-viewer');
+  const img = document.getElementById('img-viewer-img');
+  if (!v || !img) return;
+  img.src = src;
+  v.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeImgViewer() {
+  const v = document.getElementById('img-viewer');
+  if (v) v.classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeImgViewer(); });
+
+// ── Compress image to base64 (max 800px, quality 0.72) ──
+function compressImage(file, maxPx = 800, quality = 0.72) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxPx || h > maxPx) {
+          if (w > h) { h = Math.round(h * maxPx / w); w = maxPx; }
+          else { w = Math.round(w * maxPx / h); h = maxPx; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = ev.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ── State foto komentar ──
+let _pvCommentPhotoData = null;
+let _cmModalPhotoData = null;
+
+async function onPvCommentPhotoSelected(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    const b64 = await compressImage(file);
+    _pvCommentPhotoData = b64;
+    const prev = document.getElementById('pv-comment-photo-preview');
+    const row = document.getElementById('pv-comment-photo-preview-row');
+    prev.src = b64; row.style.display = 'flex';
+    const sendBtn = document.getElementById('pv-comment-send-btn');
+    if (sendBtn) sendBtn.disabled = false;
+  } catch(e) { toast('❌ Gagal memuat foto'); }
+  event.target.value = '';
+}
+function removePvCommentPhoto() {
+  _pvCommentPhotoData = null;
+  document.getElementById('pv-comment-photo-preview-row').style.display = 'none';
+  document.getElementById('pv-comment-photo-preview').src = '';
+  const ta = document.getElementById('pv-comment-textarea');
+  const sendBtn = document.getElementById('pv-comment-send-btn');
+  if (sendBtn) sendBtn.disabled = !ta?.value.trim();
+}
+
+async function onCmModalPhotoSelected(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    const b64 = await compressImage(file);
+    _cmModalPhotoData = b64;
+    const prev = document.getElementById('cm-modal-photo-preview');
+    const row = document.getElementById('cm-modal-photo-preview-row');
+    prev.src = b64; row.style.display = 'flex';
+    const sendBtn = document.getElementById('cm-modal-send-btn');
+    if (sendBtn) sendBtn.disabled = false;
+  } catch(e) { toast('❌ Gagal memuat foto'); }
+  event.target.value = '';
+}
+function removeCmModalPhoto() {
+  _cmModalPhotoData = null;
+  document.getElementById('cm-modal-photo-preview-row').style.display = 'none';
+  document.getElementById('cm-modal-photo-preview').src = '';
+  const ta = document.getElementById('cm-modal-textarea');
+  const sendBtn = document.getElementById('cm-modal-send-btn');
+  if (sendBtn) sendBtn.disabled = !ta?.value.trim();
+}
+
+// ── Kirim notifikasi ke owner playlist setelah komentar ──
 async function sendCommentNotif(playlistKey, commentText) {
   if (!currentUser) return;
   try {
@@ -3565,7 +3768,7 @@ async function sendCommentNotif(playlistKey, commentText) {
     if (!plSnap.exists()) return;
     const plData = plSnap.val();
     const ownerUid = plData.ownerUid;
-    if (!ownerUid || ownerUid === currentUser.uid) return; // jangan kirim ke diri sendiri
+    if (!ownerUid || ownerUid === currentUser.uid) return;
 
     const profileSnap = await db.ref('users/' + currentUser.uid + '/profile').get().catch(() => null);
     const profile = profileSnap?.val() || {};
@@ -3589,14 +3792,291 @@ async function sendCommentNotif(playlistKey, commentText) {
   }
 }
 
-// ─── SISTEM KOMENTAR ─────────────────────────────────────
-// Digunakan di dua tempat:
-//   1. playlist-view (openPublicPlaylist) → #pv-comment-section
-//   2. Modal dari pub-card beranda → #comment-modal
+// ── Kirim notifikasi like komentar ke pemilik komentar ──
+async function sendCommentLikeNotif(playlistKey, commentOwnerUid, commenterName, commentText) {
+  if (!currentUser || !commentOwnerUid) return;
+  if (commentOwnerUid === currentUser.uid) return; // jangan notif diri sendiri
 
-let _commentListener = null; // off() untuk listener aktif di pv-comment-section
-let _cmModalListener = null; // off() untuk listener aktif di modal
-let _currentCommentKey = null; // playlist key yang sedang dibuka di modal
+  try {
+    const profileSnap = await db.ref('users/' + currentUser.uid + '/profile').get().catch(() => null);
+    const profile = profileSnap?.val() || {};
+    const fromName = profile.displayName || currentUser.displayName || currentUser.email.split('@')[0];
+    const fromPhoto = profile.photoURL || profile.photoBase64 || currentUser.photoURL || '';
+
+    const plSnap = await db.ref('public_playlists/' + playlistKey).get().catch(() => null);
+    const plName = plSnap?.val()?.name || 'Playlist';
+
+    const notif = {
+      type: 'comment_like',
+      fromUid: currentUser.uid,
+      fromName,
+      fromPhoto,
+      playlistKey,
+      playlistName: plName,
+      comment: (commentText || '').slice(0, 100),
+      ts: Date.now(),
+      read: false
+    };
+    db.ref('users/' + commentOwnerUid + '/notifications').push(notif).catch(() => {});
+  } catch(e) {
+    console.warn('sendCommentLikeNotif error:', e);
+  }
+}
+
+// ── Kirim notifikasi reply komentar ke pemilik komentar ──
+async function sendReplyNotif(playlistKey, commentOwnerUid, replyText) {
+  if (!currentUser || !commentOwnerUid) return;
+  if (commentOwnerUid === currentUser.uid) return;
+
+  try {
+    const profileSnap = await db.ref('users/' + currentUser.uid + '/profile').get().catch(() => null);
+    const profile = profileSnap?.val() || {};
+    const fromName = profile.displayName || currentUser.displayName || currentUser.email.split('@')[0];
+    const fromPhoto = profile.photoURL || profile.photoBase64 || currentUser.photoURL || '';
+
+    const plSnap = await db.ref('public_playlists/' + playlistKey).get().catch(() => null);
+    const plName = plSnap?.val()?.name || 'Playlist';
+
+    const notif = {
+      type: 'comment_reply',
+      fromUid: currentUser.uid,
+      fromName,
+      fromPhoto,
+      playlistKey,
+      playlistName: plName,
+      comment: (replyText || '').slice(0, 100),
+      ts: Date.now(),
+      read: false
+    };
+    db.ref('users/' + commentOwnerUid + '/notifications').push(notif).catch(() => {});
+  } catch(e) {
+    console.warn('sendReplyNotif error:', e);
+  }
+}
+
+// ─── SISTEM KOMENTAR ─────────────────────────────────────
+let _commentListener = null;
+let _cmModalListener = null;
+let _currentCommentKey = null;
+let _replyPhotoDataMap = {}; // commentId → base64
+
+// ── Toggle like komentar ──
+async function toggleCommentLike(playlistKey, commentId, commentOwnerUid, commentText, btn) {
+  if (!currentUser) { toast('⚠️ Login dulu'); return; }
+  const likeRef = db.ref('public_playlists/' + playlistKey + '/comments/' + commentId + '/likes/' + currentUser.uid);
+  const isLiked = btn.classList.contains('liked');
+  const countEl = btn.querySelector('.clk-count');
+
+  if (isLiked) {
+    await likeRef.remove().catch(() => {});
+    btn.classList.remove('liked');
+    btn.querySelector('svg').setAttribute('fill', 'none');
+    if (countEl) countEl.textContent = Math.max(0, parseInt(countEl.textContent || '0') - 1) || '';
+  } else {
+    await likeRef.set(true).catch(() => {});
+    btn.classList.add('liked');
+    btn.querySelector('svg').setAttribute('fill', 'currentColor');
+    if (countEl) countEl.textContent = (parseInt(countEl.textContent || '0') + 1);
+    // Kirim notif ke pemilik komentar
+    sendCommentLikeNotif(playlistKey, commentOwnerUid, '', commentText);
+  }
+}
+
+// ── Toggle reply form ──
+function toggleReplyForm(commentId, playlistKey, commentOwnerUid) {
+  const existing = document.getElementById('reply-form-' + commentId);
+  if (existing) { existing.remove(); _replyPhotoDataMap[commentId] = null; return; }
+
+  const commentItem = document.getElementById('ci-' + commentId);
+  if (!commentItem) return;
+
+  // Get self avatar
+  let selfAvatarHtml = '👤';
+  if (currentUser) {
+    db.ref('users/' + currentUser.uid + '/profile').get().then(snap => {
+      const p = snap?.val() || {};
+      const photo = p.photoURL || p.photoBase64 || currentUser.photoURL || '';
+      const avatarEl = document.getElementById('reply-self-av-' + commentId);
+      if (avatarEl) avatarEl.innerHTML = photo ? `<img src="${esc(photo)}" alt="">` : '👤';
+    }).catch(() => {});
+  }
+
+  const form = document.createElement('div');
+  form.className = 'reply-input-wrap';
+  form.id = 'reply-form-' + commentId;
+  form.innerHTML = `
+    <div class="reply-avatar-self" id="reply-self-av-${esc(commentId)}">${selfAvatarHtml}</div>
+    <div class="reply-box">
+      <textarea class="reply-textarea" id="reply-ta-${esc(commentId)}" placeholder="Balas komentar..." rows="1"></textarea>
+      <div id="reply-photo-prev-row-${esc(commentId)}" style="display:none;" class="reply-preview-row">
+        <img id="reply-photo-prev-${esc(commentId)}" class="reply-preview-photo" src="" alt="">
+        <button class="reply-preview-remove" onclick="removeReplyPhoto('${esc(commentId)}')" title="Hapus foto">✕</button>
+      </div>
+      <div class="reply-bottom-row">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button class="reply-photo-btn" onclick="document.getElementById('reply-photo-input-${esc(commentId)}').click()" title="Bagikan foto">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+            Foto
+          </button>
+          <input type="file" id="reply-photo-input-${esc(commentId)}" accept="image/*" style="display:none;" onchange="onReplyPhotoSelected(event,'${esc(commentId)}')">
+          <button class="reply-cancel-btn" onclick="toggleReplyForm('${esc(commentId)}','${esc(playlistKey)}','${esc(commentOwnerUid)}')">Batal</button>
+        </div>
+        <button class="reply-send-btn" id="reply-send-${esc(commentId)}" disabled>
+          <svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+          Balas
+        </button>
+      </div>
+    </div>
+  `;
+  commentItem.after(form);
+
+  const ta = document.getElementById('reply-ta-' + commentId);
+  const sendBtn = document.getElementById('reply-send-' + commentId);
+  ta.addEventListener('input', () => {
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 80) + 'px';
+    sendBtn.disabled = !ta.value.trim() && !_replyPhotoDataMap[commentId];
+  });
+  sendBtn.addEventListener('click', () => submitReply(playlistKey, commentId, commentOwnerUid, ta, sendBtn));
+  ta.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitReply(playlistKey, commentId, commentOwnerUid, ta, sendBtn); }
+  });
+  setTimeout(() => ta.focus(), 100);
+}
+
+async function onReplyPhotoSelected(event, commentId) {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    const b64 = await compressImage(file);
+    _replyPhotoDataMap[commentId] = b64;
+    const prev = document.getElementById('reply-photo-prev-' + commentId);
+    const row = document.getElementById('reply-photo-prev-row-' + commentId);
+    if (prev) prev.src = b64;
+    if (row) row.style.display = 'flex';
+    const sendBtn = document.getElementById('reply-send-' + commentId);
+    if (sendBtn) sendBtn.disabled = false;
+  } catch(e) { toast('❌ Gagal memuat foto'); }
+  event.target.value = '';
+}
+function removeReplyPhoto(commentId) {
+  _replyPhotoDataMap[commentId] = null;
+  const row = document.getElementById('reply-photo-prev-row-' + commentId);
+  const prev = document.getElementById('reply-photo-prev-' + commentId);
+  if (row) row.style.display = 'none';
+  if (prev) prev.src = '';
+  const ta = document.getElementById('reply-ta-' + commentId);
+  const sendBtn = document.getElementById('reply-send-' + commentId);
+  if (sendBtn) sendBtn.disabled = !ta?.value.trim();
+}
+
+// ── Submit balasan ──
+async function submitReply(playlistKey, commentId, commentOwnerUid, textareaEl, sendBtn) {
+  const text = textareaEl.value.trim();
+  const photoData = _replyPhotoDataMap[commentId] || null;
+  if (!text && !photoData) return;
+  if (!currentUser) { toast('⚠️ Login dulu'); return; }
+  sendBtn.disabled = true;
+  try {
+    const profileSnap = await db.ref('users/' + currentUser.uid + '/profile').get().catch(() => null);
+    const profile = profileSnap?.val() || {};
+    const name = profile.displayName || currentUser.displayName || currentUser.email.split('@')[0];
+    const photoURL = profile.photoURL || profile.photoBase64 || currentUser.photoURL || '';
+    const reply = { uid: currentUser.uid, name, photoURL, text: text || '', ts: Date.now() };
+    if (photoData) reply.photoData = photoData;
+    await db.ref('public_playlists/' + playlistKey + '/comments/' + commentId + '/replies').push(reply);
+    textareaEl.value = '';
+    textareaEl.style.height = 'auto';
+    _replyPhotoDataMap[commentId] = null;
+    // Hapus form reply
+    const form = document.getElementById('reply-form-' + commentId);
+    if (form) form.remove();
+    toast('↩️ Balasan terkirim!');
+    await sendReplyNotif(playlistKey, commentOwnerUid, text);
+  } catch(e) {
+    toast('❌ Gagal kirim: ' + e.message);
+    sendBtn.disabled = false;
+  }
+}
+
+// ── Render satu item komentar ──
+function buildCommentItem(c, playlistKey, isModal) {
+  const isOwn = currentUser && c.uid === currentUser.uid;
+  const item = document.createElement('div');
+  item.className = 'comment-item';
+  item.id = 'ci-' + c._id;
+
+  const photo = c.photoURL
+    ? `<img src="${esc(c.photoURL)}" alt="" onerror="this.parentElement.innerHTML='👤'">`
+    : '👤';
+
+  // Photo dalam komentar
+  const commentPhotoHtml = c.photoData
+    ? `<img src="${esc(c.photoData)}" class="comment-photo-img" alt="foto" onclick="openImgViewer('${esc(c.photoData)}')" loading="lazy">`
+    : '';
+
+  // Likes
+  const likeCount = c.likes ? Object.keys(c.likes).length : 0;
+  const iLikedComment = currentUser && c.likes && c.likes[currentUser.uid];
+
+  // Replies
+  let repliesHtml = '';
+  if (c.replies) {
+    const replyArr = Object.entries(c.replies).map(([k, v]) => ({ _id: k, ...v })).sort((a, b) => a.ts - b.ts);
+    repliesHtml = `<div class="comment-replies">` + replyArr.map(r => {
+      const isOwnReply = currentUser && r.uid === currentUser.uid;
+      const rPhoto = r.photoURL
+        ? `<img src="${esc(r.photoURL)}" alt="" onerror="this.parentElement.innerHTML='👤'">`
+        : '👤';
+      const rImgHtml = r.photoData
+        ? `<img src="${esc(r.photoData)}" class="comment-reply-photo" alt="foto" onclick="openImgViewer('${esc(r.photoData)}')" loading="lazy">`
+        : '';
+      return `
+        <div class="comment-reply-item">
+          <div class="comment-reply-avatar">${rPhoto}</div>
+          <div class="comment-reply-bubble">
+            <div class="comment-reply-meta">
+              <span class="comment-reply-name">${esc(r.name || 'Anonim')}</span>
+              <span class="comment-reply-time">${timeAgo(r.ts || 0)}</span>
+            </div>
+            ${r.text ? `<div class="comment-reply-text">${esc(r.text)}</div>` : ''}
+            ${rImgHtml}
+            <div class="comment-reply-actions">
+              ${isOwnReply ? `<button class="comment-reply-del-btn" title="Hapus" onclick="deleteReply('${esc(playlistKey)}','${esc(c._id)}','${esc(r._id)}')">✕ Hapus</button>` : ''}
+            </div>
+          </div>
+        </div>`;
+    }).join('') + `</div>`;
+  }
+
+  item.innerHTML = `
+    <div class="comment-avatar">${photo}</div>
+    <div class="comment-bubble">
+      <div class="comment-meta">
+        <span class="comment-name">${esc(c.name || 'Anonim')}</span>
+        <span class="comment-time">${timeAgo(c.ts || 0)}</span>
+      </div>
+      ${c.text ? `<div class="comment-text">${esc(c.text)}</div>` : ''}
+      ${commentPhotoHtml}
+      <div class="comment-actions">
+        <button class="comment-like-btn ${iLikedComment ? 'liked' : ''}"
+          onclick="toggleCommentLike('${esc(playlistKey)}','${esc(c._id)}','${esc(c.uid)}',${JSON.stringify((c.text||'').slice(0,80))},this)">
+          <svg viewBox="0 0 24 24" fill="${iLikedComment ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2.5">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+          </svg>
+          <span class="clk-count">${likeCount || ''}</span>
+        </button>
+        <button class="comment-reply-btn" onclick="toggleReplyForm('${esc(c._id)}','${esc(playlistKey)}','${esc(c.uid)}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 17l-5-5 5-5"/><path d="M4 12h11a4 4 0 0 1 0 8h-1"/></svg>
+          Balas
+        </button>
+      </div>
+      ${repliesHtml}
+    </div>
+    ${isOwn ? `<button class="comment-del-btn" title="Hapus" onclick="deleteComment('${esc(playlistKey)}','${esc(c._id)}','${isModal ? 'modal' : 'pv'}')">✕</button>` : ''}
+  `;
+  return item;
+}
 
 // ── Render daftar komentar ke container tertentu ──
 function renderCommentList(container, comments, playlistKey, isModal) {
@@ -3605,26 +4085,7 @@ function renderCommentList(container, comments, playlistKey, isModal) {
     return;
   }
   container.innerHTML = '';
-  comments.forEach(c => {
-    const isOwn = currentUser && c.uid === currentUser.uid;
-    const item = document.createElement('div');
-    item.className = 'comment-item';
-    const photo = c.photoURL
-      ? `<img src="${esc(c.photoURL)}" alt="" onerror="this.parentElement.innerHTML='👤'">`
-      : '👤';
-    item.innerHTML = `
-      <div class="comment-avatar">${photo}</div>
-      <div class="comment-bubble">
-        <div class="comment-meta">
-          <span class="comment-name">${esc(c.name || 'Anonim')}</span>
-          <span class="comment-time">${timeAgo(c.ts || 0)}</span>
-        </div>
-        <div class="comment-text">${esc(c.text || '')}</div>
-      </div>
-      ${isOwn ? `<button class="comment-del-btn" title="Hapus" onclick="deleteComment('${esc(playlistKey)}','${esc(c._id)}','${isModal ? 'modal' : 'pv'}')">✕</button>` : ''}
-    `;
-    container.appendChild(item);
-  });
+  comments.forEach(c => container.appendChild(buildCommentItem(c, playlistKey, isModal)));
 }
 
 // ── Ambil & render komentar, pasang listener real-time ──
@@ -3635,7 +4096,6 @@ function listenComments(playlistKey, listEl, offCallback) {
     if (snap.exists()) {
       snap.forEach(child => { comments.push({ _id: child.key, ...child.val() }); });
     }
-    // Update jumlah di tombol beranda
     const countEl = document.querySelector('.comment-count-' + playlistKey);
     if (countEl) countEl.textContent = comments.length ? `💬 ${comments.length}` : '💬';
     renderCommentList(listEl, comments, playlistKey, offCallback === 'modal');
@@ -3643,22 +4103,25 @@ function listenComments(playlistKey, listEl, offCallback) {
   return () => ref.off('value', handler);
 }
 
-// ── Kirim komentar ──
-async function submitComment(playlistKey, textareaEl, sendBtn) {
+// ── Kirim komentar (dengan foto opsional) ──
+async function submitComment(playlistKey, textareaEl, sendBtn, photoDataRef) {
   const text = textareaEl.value.trim();
-  if (!text || !currentUser) return;
+  const photoData = (typeof photoDataRef === 'function') ? photoDataRef() : photoDataRef;
+  if (!text && !photoData) return;
+  if (!currentUser) { toast('⚠️ Login dulu'); return; }
   sendBtn.disabled = true;
   try {
     const profileSnap = await db.ref('users/' + currentUser.uid + '/profile').get().catch(() => null);
     const profile = profileSnap?.val() || {};
     const name = profile.displayName || currentUser.displayName || currentUser.email.split('@')[0];
     const photoURL = profile.photoURL || profile.photoBase64 || currentUser.photoURL || '';
-    const comment = { uid: currentUser.uid, name, photoURL, text, ts: Date.now() };
+    const comment = { uid: currentUser.uid, name, photoURL, text: text || '', ts: Date.now() };
+    if (photoData) comment.photoData = photoData;
     await db.ref('public_playlists/' + playlistKey + '/comments').push(comment);
     textareaEl.value = '';
     textareaEl.style.height = 'auto';
     sendBtn.disabled = true;
-    await sendCommentNotif(playlistKey, text);
+    if (text) await sendCommentNotif(playlistKey, text);
     toast('💬 Komentar terkirim!');
   } catch(e) {
     toast('❌ Gagal kirim: ' + e.message);
@@ -3675,22 +4138,38 @@ async function deleteComment(playlistKey, commentId, source) {
   } catch(e) { toast('❌ Gagal hapus: ' + e.message); }
 }
 
+// ── Hapus balasan ──
+async function deleteReply(playlistKey, commentId, replyId) {
+  if (!confirm('Hapus balasan ini?')) return;
+  try {
+    await db.ref('public_playlists/' + playlistKey + '/comments/' + commentId + '/replies/' + replyId).remove();
+    toast('🗑️ Balasan dihapus');
+  } catch(e) { toast('❌ Gagal hapus: ' + e.message); }
+}
+
 // ── Setup comment input (auto-resize + enable send) ──
-function setupCommentInput(textareaEl, sendBtn, playlistKey, isModal) {
+function setupCommentInput(textareaEl, sendBtn, playlistKey, isModal, getPhotoData, clearPhotoData) {
   textareaEl.addEventListener('input', () => {
     textareaEl.style.height = 'auto';
     textareaEl.style.height = Math.min(textareaEl.scrollHeight, 100) + 'px';
-    sendBtn.disabled = !textareaEl.value.trim();
+    sendBtn.disabled = !textareaEl.value.trim() && !getPhotoData?.();
   });
-  sendBtn.addEventListener('click', () => submitComment(playlistKey, textareaEl, sendBtn));
+  sendBtn.addEventListener('click', async () => {
+    const pd = getPhotoData?.() || null;
+    await submitComment(playlistKey, textareaEl, sendBtn, pd);
+    clearPhotoData?.();
+  });
   textareaEl.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitComment(playlistKey, textareaEl, sendBtn); }
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      const pd = getPhotoData?.() || null;
+      submitComment(playlistKey, textareaEl, sendBtn, pd).then(() => clearPhotoData?.());
+    }
   });
 }
 
-// ── Tampilkan komentar di playlist-view (openPublicPlaylist) ──
+// ── Tampilkan komentar di playlist-view ──
 function showPvComments(playlistKey) {
-  // Detach listener lama
   if (_commentListener) { _commentListener(); _commentListener = null; }
 
   const section = document.getElementById('pv-comment-section');
@@ -3704,8 +4183,8 @@ function showPvComments(playlistKey) {
   listEl.innerHTML = '<div class="comment-loading">Memuat komentar...</div>';
   textarea.value = '';
   sendBtn.disabled = true;
+  removePvCommentPhoto();
 
-  // Set avatar user sendiri
   if (currentUser) {
     db.ref('users/' + currentUser.uid + '/profile').get().then(snap => {
       const p = snap?.val() || {};
@@ -3714,13 +4193,19 @@ function showPvComments(playlistKey) {
     }).catch(() => {});
   }
 
-  // Setup input
   textarea.removeEventListener('input', textarea._inputHandler);
-  sendBtn.replaceWith(sendBtn.cloneNode(true)); // reset listeners
+  sendBtn.replaceWith(sendBtn.cloneNode(true));
   const newSendBtn = document.getElementById('pv-comment-send-btn');
-  setupCommentInput(textarea, newSendBtn, playlistKey, false);
+  const clonedTa = textarea.cloneNode(true);
+  textarea.replaceWith(clonedTa);
+  const newTa = document.getElementById('pv-comment-textarea');
 
-  // Pasang listener
+  setupCommentInput(
+    newTa, newSendBtn, playlistKey, false,
+    () => _pvCommentPhotoData,
+    () => removePvCommentPhoto()
+  );
+
   _commentListener = listenComments(playlistKey, listEl, 'pv');
 }
 
@@ -3747,25 +4232,28 @@ function openCommentModal(e, playlistKey, playlistName) {
   listEl.innerHTML = '<div class="comment-loading">Memuat komentar...</div>';
   textarea.value = '';
   sendBtn.disabled = true;
+  removeCmModalPhoto();
 
   modal.classList.add('open');
   document.body.style.overflow = 'hidden';
 
-  // Avatar
   db.ref('users/' + currentUser.uid + '/profile').get().then(snap => {
     const p = snap?.val() || {};
     const photo = p.photoURL || p.photoBase64 || currentUser.photoURL || '';
     selfAvatar.innerHTML = photo ? `<img src="${esc(photo)}" alt="">` : '👤';
   }).catch(() => {});
 
-  // Setup input — clone dulu untuk reset listeners lama
   const newSendBtn = sendBtn.cloneNode(true);
   sendBtn.replaceWith(newSendBtn);
   const newTextarea = textarea.cloneNode(true);
   textarea.replaceWith(newTextarea);
-  setupCommentInput(newTextarea, newSendBtn, playlistKey, true);
 
-  // Detach listener lama & pasang baru
+  setupCommentInput(
+    newTextarea, newSendBtn, playlistKey, true,
+    () => _cmModalPhotoData,
+    () => removeCmModalPhoto()
+  );
+
   if (_cmModalListener) { _cmModalListener(); _cmModalListener = null; }
   _cmModalListener = listenComments(playlistKey, listEl, 'modal');
 
@@ -3778,17 +4266,17 @@ function closeCommentModal() {
   const modal = document.getElementById('comment-modal');
   modal.classList.remove('open');
   document.body.style.overflow = '';
+  removeCmModalPhoto();
 }
 
-// ── Hook ke openPublicPlaylist untuk otomatis tampilkan komentar ──
+// ── Hook ke openPublicPlaylist ──
 const _origOpenPublicPlaylist = openPublicPlaylist;
 openPublicPlaylist = async function(pl) {
   await _origOpenPublicPlaylist(pl);
-  // Tampilkan komentar hanya untuk playlist publik (bukan milik sendiri juga bisa)
   showPvComments(pl.key);
 };
 
-// ── Hook ke backFromPlaylist untuk sembunyikan komentar ──
+// ── Hook ke backFromPlaylist ──
 const _origBackFromPlaylist = backFromPlaylist;
 backFromPlaylist = function() {
   hidePvComments();
@@ -3799,7 +4287,7 @@ backFromPlaylist = function() {
 const _origShowAppNotif = showApp;
 showApp = function(user) {
   _origShowAppNotif(user);
-  setTimeout(() => startNotifListeners(), 1500); // delay agar playlist sudah di-publish dulu
+  setTimeout(() => startNotifListeners(), 1500);
 };
 
 if ('serviceWorker' in navigator) {
