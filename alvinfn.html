@@ -2919,6 +2919,35 @@ async function toggleLike(e, key, currentlyLiked) {
       if (countEl) countEl.textContent = parseInt(countEl.textContent) + 1;
       btn.setAttribute('onclick', `toggleLike(event,'${key}',true)`);
       toast('❤️ Playlist disukai!');
+
+      // ── Kirim notifikasi ke owner playlist ──
+      try {
+        const plSnap = await db.ref('public_playlists/' + key).get();
+        if (plSnap.exists()) {
+          const plData = plSnap.val();
+          const ownerUid = plData.ownerUid;
+          // Jangan kirim notif ke diri sendiri
+          if (ownerUid && ownerUid !== currentUser.uid) {
+            const profileSnap = await db.ref('users/' + currentUser.uid + '/profile').get().catch(() => null);
+            const profile = profileSnap?.val() || {};
+            const fromName = profile.displayName || currentUser.displayName || currentUser.email.split('@')[0];
+            const fromPhoto = profile.photoURL || profile.photoBase64 || currentUser.photoURL || '';
+            const notif = {
+              type: 'like',
+              fromUid: currentUser.uid,
+              fromName,
+              fromPhoto,
+              playlistKey: key,
+              playlistName: plData.name || 'Playlist',
+              ts: Date.now(),
+              read: false
+            };
+            db.ref('users/' + ownerUid + '/notifications').push(notif).catch(() => {});
+          }
+        }
+      } catch(notifErr) {
+        console.warn('Notif like gagal:', notifErr);
+      }
     }
     // Refresh ranking after like change
     setTimeout(() => loadPublicFeed(), 500);
@@ -3416,113 +3445,39 @@ function startNotifListeners() {
     updateNotifBadge(panelOpen ? 0 : unread);
   });
   _notifListeners.push(() => notifRef.off('value', allOff));
-
-  // Listen ke playlist publik milik user → deteksi like & komentar baru
-  listenPublicPlaylistActivity();
 }
 
-// Ambil semua playlist publik milik user, lalu pasang listener
-async function listenPublicPlaylistActivity() {
+// Helper: kirim notifikasi komentar ke owner playlist
+// Panggil ini dari manapun setelah komentar berhasil ditulis ke DB
+async function sendCommentNotif(playlistKey, commentText) {
   if (!currentUser) return;
+  try {
+    const plSnap = await db.ref('public_playlists/' + playlistKey).get();
+    if (!plSnap.exists()) return;
+    const plData = plSnap.val();
+    const ownerUid = plData.ownerUid;
+    if (!ownerUid || ownerUid === currentUser.uid) return; // jangan kirim ke diri sendiri
 
-  // Ambil semua key playlist publik milik user
-  const snap = await db.ref('public_playlists').orderByChild('ownerUid').equalTo(currentUser.uid).get().catch(() => null);
-  if (!snap || !snap.exists()) return;
+    const profileSnap = await db.ref('users/' + currentUser.uid + '/profile').get().catch(() => null);
+    const profile = profileSnap?.val() || {};
+    const fromName = profile.displayName || currentUser.displayName || currentUser.email.split('@')[0];
+    const fromPhoto = profile.photoURL || profile.photoBase64 || currentUser.photoURL || '';
 
-  snap.forEach(child => {
-    const key = child.key;
-    const plName = child.val().name || 'Playlist';
-    listenPlaylistLikes(key, plName);
-    listenPlaylistComments(key, plName);
-  });
-}
-
-// Simpan last-known likes agar tidak notifikasi yang sudah ada saat pertama load
-const _seenLikes = {};
-const _seenComments = {};
-let _initDone = false;
-
-function listenPlaylistLikes(key, plName) {
-  if (!currentUser) return;
-  const likesRef = db.ref('public_playlists/' + key + '/likes');
-
-  // Snapshot awal — tandai semua sebagai "sudah diketahui"
-  likesRef.get().then(snap => {
-    if (snap.exists()) {
-      snap.forEach(child => { _seenLikes[key + '_' + child.key] = true; });
-    }
-    _initDone = true;
-
-    // Baru pasang listener setelah init
-    const off = likesRef.on('child_added', async (likeSnap) => {
-      const likerUid = likeSnap.key;
-      if (!likerUid || likerUid === currentUser.uid) return; // ignore like sendiri
-      const seenKey = key + '_' + likerUid;
-      if (_seenLikes[seenKey]) return; // sudah diketahui
-      _seenLikes[seenKey] = true;
-
-      // Ambil profil liker
-      const profileSnap = await db.ref('users/' + likerUid + '/profile').get().catch(() => null);
-      const profile = profileSnap?.val() || {};
-      const fromName = profile.displayName || 'Seseorang';
-      const fromPhoto = profile.photoURL || profile.photoBase64 || '';
-
-      // Simpan notifikasi ke Firebase
-      const notif = {
-        type: 'like',
-        fromUid: likerUid,
-        fromName,
-        fromPhoto,
-        playlistKey: key,
-        playlistName: plName,
-        ts: Date.now(),
-        read: false
-      };
-      db.ref('users/' + currentUser.uid + '/notifications').push(notif).catch(() => {});
-    });
-    _notifListeners.push(() => likesRef.off('child_added', off));
-  });
-}
-
-function listenPlaylistComments(key, plName) {
-  if (!currentUser) return;
-  const commRef = db.ref('public_playlists/' + key + '/comments');
-
-  commRef.get().then(snap => {
-    if (snap.exists()) {
-      snap.forEach(child => { _seenComments[key + '_' + child.key] = true; });
-    }
-
-    const off = commRef.on('child_added', async (commSnap) => {
-      const commId = commSnap.key;
-      const data = commSnap.val();
-      if (!data) return;
-      const authorUid = data.uid || data.authorUid;
-      if (!authorUid || authorUid === currentUser.uid) return;
-      const seenKey = key + '_' + commId;
-      if (_seenComments[seenKey]) return;
-      _seenComments[seenKey] = true;
-
-      const profileSnap = await db.ref('users/' + authorUid + '/profile').get().catch(() => null);
-      const profile = profileSnap?.val() || {};
-      const fromName = data.authorName || profile.displayName || 'Seseorang';
-      const fromPhoto = data.authorPhoto || profile.photoURL || profile.photoBase64 || '';
-
-      const notif = {
-        type: 'comment',
-        fromUid: authorUid,
-        fromName,
-        fromPhoto,
-        playlistKey: key,
-        playlistName: plName,
-        comment: data.text || data.comment || '',
-        ts: Date.now(),
-        read: false
-      };
-      db.ref('users/' + currentUser.uid + '/notifications').push(notif).catch(() => {});
-    });
-    _notifListeners.push(() => commRef.off('child_added', off));
-  });
+    const notif = {
+      type: 'comment',
+      fromUid: currentUser.uid,
+      fromName,
+      fromPhoto,
+      playlistKey,
+      playlistName: plData.name || 'Playlist',
+      comment: (commentText || '').slice(0, 200),
+      ts: Date.now(),
+      read: false
+    };
+    db.ref('users/' + ownerUid + '/notifications').push(notif).catch(() => {});
+  } catch(e) {
+    console.warn('sendCommentNotif error:', e);
+  }
 }
 
 // Hook ke showApp untuk mulai listener setelah login
@@ -3530,13 +3485,6 @@ const _origShowAppNotif = showApp;
 showApp = function(user) {
   _origShowAppNotif(user);
   setTimeout(() => startNotifListeners(), 1500); // delay agar playlist sudah di-publish dulu
-};
-
-// Re-scan playlist publik setelah publish/unpublish
-const _origTogglePublish = togglePublishPlaylist;
-window.togglePublishPlaylist = async function() {
-  await _origTogglePublish.apply(this, arguments);
-  setTimeout(() => listenPublicPlaylistActivity(), 2000);
 };
 
 if ('serviceWorker' in navigator) {
