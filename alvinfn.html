@@ -2434,9 +2434,9 @@ function renderKineticLines(idx) {
   prevEl.textContent = prevLine;
   nextEl.textContent = nextLine;
 
-  // Hitung durasi baris aktif (sampai baris berikutnya atau +3 detik)
+  // Hitung durasi baris aktif
   const lineStart = lyrs[idx].time;
-  const lineEnd   = idx < lyrs.length - 1 ? lyrs[idx + 1].time : lineStart + 3;
+  const lineEnd   = idx < lyrs.length - 1 ? lyrs[idx + 1].time : lineStart + 4;
   const lineDur   = Math.max(lineEnd - lineStart, 0.5);
 
   // Motion blur flash
@@ -2451,18 +2451,28 @@ function renderKineticLines(idx) {
   _kWordTimestamps = [];
   _kWordLitIdx = -1;
 
+  // Distribusi timestamp berdasarkan bobot panjang karakter kata.
+  // Kata lebih panjang = waktu lebih banyak.
+  // Sisakan 8% di awal (jeda natural masuk baris) dan 12% di akhir
+  // (napas / jeda ke baris berikutnya).
+  const LEAD   = 0.08;
+  const TRAIL  = 0.12;
+  const usable = lineDur * (1 - LEAD - TRAIL);
+
+  const charLens   = words.map(w => Math.max(w.replace(/\W/g, '').length, 1));
+  const totalChars = charLens.reduce((a, b) => a + b, 0);
+
+  let cumChars = 0;
   words.forEach((w, i) => {
     const sp = document.createElement('span');
     sp.className = 'k-word';
     sp.textContent = w;
     stage.appendChild(sp);
 
-    // Timestamp setiap kata: proporsional dalam durasi baris
-    // Berikan jeda awal kecil (5% durasi baris) lalu bagi rata
-    const frac = words.length > 1
-      ? 0.05 + (i / (words.length - 1)) * 0.9
-      : 0.3;
-    _kWordTimestamps.push({ t: lineStart + frac * lineDur, el: sp });
+    // Offset proporsional karakter kumulatif
+    const tWord = lineStart + lineDur * LEAD + (cumChars / totalChars) * usable;
+    _kWordTimestamps.push({ t: tWord, el: sp });
+    cumChars += charLens[i];
   });
 
   // Animasi masuk stage
@@ -2480,29 +2490,35 @@ function renderKineticLines(idx) {
 function _kRafWordLoop() {
   if (_lyrStyle !== 'kinetic') return;
 
-  const nowSec = cur; // `cur` diupdate oleh loop utama via updateFSProg / onTimeUpdate
+  const nowSec = cur;
 
-  // Nyalakan kata sesuai waktu
   for (let i = 0; i < _kWordTimestamps.length; i++) {
     const wt = _kWordTimestamps[i];
     if (nowSec >= wt.t && i > _kWordLitIdx) {
-      // Nyalakan kata i
+      // Tandai kata sebelumnya sebagai past
       if (_kWordLitIdx >= 0) {
-        // Kata sebelumnya → past
-        _kWordTimestamps[_kWordLitIdx].el.classList.remove('k-word-lit', 'k-word-enter');
-        _kWordTimestamps[_kWordLitIdx].el.classList.add('k-word-past');
+        const prev = _kWordTimestamps[_kWordLitIdx].el;
+        prev.classList.remove('k-word-lit', 'k-word-enter');
+        prev.classList.add('k-word-past');
       }
-      wt.el.classList.remove('k-word-past');
-      wt.el.classList.add('k-word-enter');
-      // Setelah animasi masuk, tambah k-word-lit
-      const el = wt.el;
-      setTimeout(() => {
-        el.classList.remove('k-word-enter');
-        el.classList.add('k-word-lit');
-      }, 200);
-      _kWordLitIdx = i;
 
-      // Update progress dot
+      // Cek apakah kata ini sudah "jauh" terlewat (>0.4 detik terlambat)
+      // Kalau iya, langsung past tanpa animasi supaya tidak menumpuk
+      const isSkipped = (nowSec - wt.t) > 0.4;
+      if (isSkipped) {
+        wt.el.classList.remove('k-word-enter');
+        wt.el.classList.add('k-word-past');
+      } else {
+        wt.el.classList.remove('k-word-past');
+        wt.el.classList.add('k-word-enter');
+        const el = wt.el;
+        setTimeout(() => {
+          el.classList.remove('k-word-enter');
+          el.classList.add('k-word-lit');
+        }, 180);
+      }
+
+      _kWordLitIdx = i;
       updateDot(i, _kWordTimestamps.length);
     }
   }
