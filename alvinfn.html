@@ -357,6 +357,56 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
 .pv-publish-btn.published{background:rgba(29,107,219,.12);border-color:rgba(29,107,219,.5);color:var(--green);}
 .pv-publish-btn svg{width:14px;height:14px;}
 
+/* ── COMMENT SECTION ─────────────────────────────────────── */
+.comment-section{padding:0 24px 32px;}
+.comment-section-title{font-size:.78rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:7px;}
+.comment-section-title svg{width:14px;height:14px;}
+.comment-input-wrap{display:flex;gap:10px;align-items:flex-start;margin-bottom:18px;}
+.comment-avatar-self{width:34px;height:34px;border-radius:50%;background:var(--hover);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.85rem;overflow:hidden;}
+.comment-avatar-self img{width:34px;height:34px;border-radius:50%;object-fit:cover;}
+.comment-box{flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;transition:border-color .2s;}
+.comment-box:focus-within{border-color:rgba(29,107,219,.5);}
+.comment-textarea{background:none;border:none;outline:none;resize:none;font-family:var(--f);font-size:.83rem;color:var(--text);width:100%;min-height:36px;max-height:100px;line-height:1.5;overflow-y:auto;}
+.comment-textarea::placeholder{color:var(--muted);}
+.comment-send-row{display:flex;justify-content:flex-end;}
+.comment-send-btn{background:var(--green);border:none;border-radius:50px;padding:6px 16px;color:#fff;font-family:var(--f);font-weight:700;font-size:.75rem;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:5px;}
+.comment-send-btn:hover{box-shadow:var(--green-glow);transform:translateY(-1px);}
+.comment-send-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+.comment-send-btn svg{width:13px;height:13px;}
+.comment-list{display:flex;flex-direction:column;gap:12px;}
+.comment-item{display:flex;gap:10px;align-items:flex-start;}
+.comment-avatar{width:32px;height:32px;border-radius:50%;background:var(--hover);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.8rem;overflow:hidden;}
+.comment-avatar img{width:32px;height:32px;border-radius:50%;object-fit:cover;}
+.comment-bubble{flex:1;min-width:0;}
+.comment-meta{display:flex;align-items:baseline;gap:7px;margin-bottom:3px;}
+.comment-name{font-size:.78rem;font-weight:700;color:var(--text);}
+.comment-time{font-size:.66rem;color:var(--muted);}
+.comment-text{font-size:.8rem;color:var(--sub);line-height:1.55;word-break:break-word;}
+.comment-del-btn{background:none;border:none;color:var(--muted);cursor:pointer;padding:2px 4px;border-radius:5px;font-size:.7rem;opacity:0;transition:all .15s;flex-shrink:0;margin-top:1px;}
+.comment-item:hover .comment-del-btn{opacity:1;}
+.comment-del-btn:hover{color:#ff5555;}
+.comment-empty{text-align:center;padding:20px 0;color:var(--muted);font-size:.78rem;line-height:1.7;}
+.comment-empty span{display:block;font-size:1.6rem;margin-bottom:6px;}
+.comment-loading{text-align:center;padding:16px 0;color:var(--muted);font-size:.78rem;}
+
+/* Tombol komentar di pub-card (beranda) */
+.pub-comment-btn{display:flex;align-items:center;gap:3px;background:var(--bg);border:1px solid var(--border);color:var(--sub);font-family:var(--f);font-size:.7rem;cursor:pointer;padding:4px 8px;border-radius:50px;transition:all .18s;flex-shrink:0;white-space:nowrap;}
+.pub-comment-btn:hover{color:var(--teal);border-color:rgba(61,157,214,.35);background:rgba(61,157,214,.06);}
+.pub-comment-btn svg{width:12px;height:12px;flex-shrink:0;}
+
+/* Modal komentar (dari beranda pub-card) */
+#comment-modal{position:fixed;inset:0;z-index:9000;display:none;align-items:flex-end;justify-content:center;}
+#comment-modal.open{display:flex;}
+#comment-modal .cm-overlay{position:absolute;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);}
+#comment-modal .cm-sheet{position:relative;z-index:1;background:var(--panel);border:1px solid var(--border);border-radius:20px 20px 0 0;width:100%;max-width:580px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;}
+.cm-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 12px;border-bottom:1px solid var(--border);}
+.cm-title{font-size:.9rem;font-weight:700;}
+.cm-close{background:none;border:none;color:var(--muted);cursor:pointer;padding:4px;border-radius:8px;display:flex;align-items:center;transition:all .15s;}
+.cm-close:hover{color:var(--text);background:var(--hover);}
+.cm-close svg{width:18px;height:18px;}
+.cm-body{flex:1;overflow-y:auto;padding:16px 20px 0;scrollbar-width:thin;scrollbar-color:var(--hover) transparent;}
+.cm-input-wrap{padding:12px 20px 16px;border-top:1px solid var(--border);}
+
 /* TOAST */
 #toast{position:fixed;bottom:105px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--card);border:1px solid var(--border);border-radius:50px;padding:9px 18px;font-size:.8rem;color:var(--text);z-index:9999;opacity:0;transition:all .28s;pointer-events:none;white-space:nowrap}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -1289,9 +1339,61 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
     <div class="pv-tracks" id="pv-tracks">
       <div class="pv-empty"><div class="pv-empty-icon">🎵</div>Belum ada lagu di playlist ini.<br>Klik "Tambah Lagu" untuk mulai menambahkan.</div>
     </div>
+    <!-- COMMENT SECTION (playlist publik) -->
+    <div class="comment-section" id="pv-comment-section" style="display:none;">
+      <div class="comment-section-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Komentar
+      </div>
+      <div class="comment-input-wrap" id="pv-comment-input-wrap">
+        <div class="comment-avatar-self" id="pv-comment-self-avatar">👤</div>
+        <div class="comment-box">
+          <textarea class="comment-textarea" id="pv-comment-textarea" placeholder="Tulis komentar..." rows="1"></textarea>
+          <div class="comment-send-row">
+            <button class="comment-send-btn" id="pv-comment-send-btn" disabled>
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+              Kirim
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="comment-list" id="pv-comment-list">
+        <div class="comment-loading">Memuat komentar...</div>
+      </div>
+    </div>
   </div>
 
-</main>
+<!-- MODAL KOMENTAR (dari beranda pub-card) -->
+<div id="comment-modal">
+  <div class="cm-overlay" onclick="closeCommentModal()"></div>
+  <div class="cm-sheet">
+    <div class="cm-header">
+      <div class="cm-title" id="cm-modal-title">Komentar</div>
+      <button class="cm-close" onclick="closeCommentModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="cm-body" id="cm-modal-body">
+      <div class="comment-list" id="cm-modal-list">
+        <div class="comment-loading">Memuat komentar...</div>
+      </div>
+    </div>
+    <div class="cm-input-wrap">
+      <div class="comment-input-wrap" style="margin-bottom:0;">
+        <div class="comment-avatar-self" id="cm-modal-self-avatar">👤</div>
+        <div class="comment-box">
+          <textarea class="comment-textarea" id="cm-modal-textarea" placeholder="Tulis komentar..." rows="1"></textarea>
+          <div class="comment-send-row">
+            <button class="comment-send-btn" id="cm-modal-send-btn" disabled>
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+              Kirim
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- LYRICS -->
 <aside id="lyr">
@@ -2796,7 +2898,8 @@ async function loadPublicFeed() {
       if (!pl || !pl.ownerUid) continue;
       const likes = pl.likes ? Object.keys(pl.likes).length : 0;
       const iLiked = pl.likes && pl.likes[currentUser.uid] === true;
-      pls.push({ key, ...pl, likeCount: likes, iLiked });
+      const commentCount = pl.comments ? Object.keys(pl.comments).length : 0;
+      pls.push({ key, ...pl, likeCount: likes, iLiked, commentCount });
     }
 
     if (!pls.length) {
@@ -2888,6 +2991,10 @@ function renderPublicGrid(pls) {
           <button class="pub-like-btn ${pl.iLiked ? 'liked' : ''}" data-key="${esc(pl.key)}" onclick="toggleLike(event,'${esc(pl.key)}',${pl.iLiked})">
             <svg viewBox="0 0 24 24" fill="${pl.iLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
             <span class="like-count-${esc(pl.key)}">${pl.likeCount}</span>
+          </button>
+          <button class="pub-comment-btn" onclick="openCommentModal(event,'${esc(pl.key)}','${esc((pl.name||'Playlist').replace(/'/g,"\\'"))}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span class="comment-count-${esc(pl.key)}">${pl.commentCount ? '💬 '+pl.commentCount : '💬'}</span>
           </button>
         </div>
       </div>
@@ -3479,6 +3586,212 @@ async function sendCommentNotif(playlistKey, commentText) {
     console.warn('sendCommentNotif error:', e);
   }
 }
+
+// ─── SISTEM KOMENTAR ─────────────────────────────────────
+// Digunakan di dua tempat:
+//   1. playlist-view (openPublicPlaylist) → #pv-comment-section
+//   2. Modal dari pub-card beranda → #comment-modal
+
+let _commentListener = null; // off() untuk listener aktif di pv-comment-section
+let _cmModalListener = null; // off() untuk listener aktif di modal
+let _currentCommentKey = null; // playlist key yang sedang dibuka di modal
+
+// ── Render daftar komentar ke container tertentu ──
+function renderCommentList(container, comments, playlistKey, isModal) {
+  if (!comments || !comments.length) {
+    container.innerHTML = `<div class="comment-empty"><span>💬</span>Belum ada komentar.<br>Jadilah yang pertama!</div>`;
+    return;
+  }
+  container.innerHTML = '';
+  comments.forEach(c => {
+    const isOwn = currentUser && c.uid === currentUser.uid;
+    const item = document.createElement('div');
+    item.className = 'comment-item';
+    const photo = c.photoURL
+      ? `<img src="${esc(c.photoURL)}" alt="" onerror="this.parentElement.innerHTML='👤'">`
+      : '👤';
+    item.innerHTML = `
+      <div class="comment-avatar">${photo}</div>
+      <div class="comment-bubble">
+        <div class="comment-meta">
+          <span class="comment-name">${esc(c.name || 'Anonim')}</span>
+          <span class="comment-time">${timeAgo(c.ts || 0)}</span>
+        </div>
+        <div class="comment-text">${esc(c.text || '')}</div>
+      </div>
+      ${isOwn ? `<button class="comment-del-btn" title="Hapus" onclick="deleteComment('${esc(playlistKey)}','${esc(c._id)}','${isModal ? 'modal' : 'pv'}')">✕</button>` : ''}
+    `;
+    container.appendChild(item);
+  });
+}
+
+// ── Ambil & render komentar, pasang listener real-time ──
+function listenComments(playlistKey, listEl, offCallback) {
+  const ref = db.ref('public_playlists/' + playlistKey + '/comments').orderByChild('ts').limitToLast(100);
+  const handler = ref.on('value', snap => {
+    const comments = [];
+    if (snap.exists()) {
+      snap.forEach(child => { comments.push({ _id: child.key, ...child.val() }); });
+    }
+    // Update jumlah di tombol beranda
+    const countEl = document.querySelector('.comment-count-' + playlistKey);
+    if (countEl) countEl.textContent = comments.length ? `💬 ${comments.length}` : '💬';
+    renderCommentList(listEl, comments, playlistKey, offCallback === 'modal');
+  });
+  return () => ref.off('value', handler);
+}
+
+// ── Kirim komentar ──
+async function submitComment(playlistKey, textareaEl, sendBtn) {
+  const text = textareaEl.value.trim();
+  if (!text || !currentUser) return;
+  sendBtn.disabled = true;
+  try {
+    const profileSnap = await db.ref('users/' + currentUser.uid + '/profile').get().catch(() => null);
+    const profile = profileSnap?.val() || {};
+    const name = profile.displayName || currentUser.displayName || currentUser.email.split('@')[0];
+    const photoURL = profile.photoURL || profile.photoBase64 || currentUser.photoURL || '';
+    const comment = { uid: currentUser.uid, name, photoURL, text, ts: Date.now() };
+    await db.ref('public_playlists/' + playlistKey + '/comments').push(comment);
+    textareaEl.value = '';
+    textareaEl.style.height = 'auto';
+    sendBtn.disabled = true;
+    await sendCommentNotif(playlistKey, text);
+    toast('💬 Komentar terkirim!');
+  } catch(e) {
+    toast('❌ Gagal kirim: ' + e.message);
+    sendBtn.disabled = false;
+  }
+}
+
+// ── Hapus komentar ──
+async function deleteComment(playlistKey, commentId, source) {
+  if (!confirm('Hapus komentar ini?')) return;
+  try {
+    await db.ref('public_playlists/' + playlistKey + '/comments/' + commentId).remove();
+    toast('🗑️ Komentar dihapus');
+  } catch(e) { toast('❌ Gagal hapus: ' + e.message); }
+}
+
+// ── Setup comment input (auto-resize + enable send) ──
+function setupCommentInput(textareaEl, sendBtn, playlistKey, isModal) {
+  textareaEl.addEventListener('input', () => {
+    textareaEl.style.height = 'auto';
+    textareaEl.style.height = Math.min(textareaEl.scrollHeight, 100) + 'px';
+    sendBtn.disabled = !textareaEl.value.trim();
+  });
+  sendBtn.addEventListener('click', () => submitComment(playlistKey, textareaEl, sendBtn));
+  textareaEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitComment(playlistKey, textareaEl, sendBtn); }
+  });
+}
+
+// ── Tampilkan komentar di playlist-view (openPublicPlaylist) ──
+function showPvComments(playlistKey) {
+  // Detach listener lama
+  if (_commentListener) { _commentListener(); _commentListener = null; }
+
+  const section = document.getElementById('pv-comment-section');
+  const listEl = document.getElementById('pv-comment-list');
+  const textarea = document.getElementById('pv-comment-textarea');
+  const sendBtn = document.getElementById('pv-comment-send-btn');
+  const selfAvatar = document.getElementById('pv-comment-self-avatar');
+  if (!section) return;
+
+  section.style.display = 'block';
+  listEl.innerHTML = '<div class="comment-loading">Memuat komentar...</div>';
+  textarea.value = '';
+  sendBtn.disabled = true;
+
+  // Set avatar user sendiri
+  if (currentUser) {
+    db.ref('users/' + currentUser.uid + '/profile').get().then(snap => {
+      const p = snap?.val() || {};
+      const photo = p.photoURL || p.photoBase64 || currentUser.photoURL || '';
+      selfAvatar.innerHTML = photo ? `<img src="${esc(photo)}" alt="">` : '👤';
+    }).catch(() => {});
+  }
+
+  // Setup input
+  textarea.removeEventListener('input', textarea._inputHandler);
+  sendBtn.replaceWith(sendBtn.cloneNode(true)); // reset listeners
+  const newSendBtn = document.getElementById('pv-comment-send-btn');
+  setupCommentInput(textarea, newSendBtn, playlistKey, false);
+
+  // Pasang listener
+  _commentListener = listenComments(playlistKey, listEl, 'pv');
+}
+
+function hidePvComments() {
+  if (_commentListener) { _commentListener(); _commentListener = null; }
+  const section = document.getElementById('pv-comment-section');
+  if (section) section.style.display = 'none';
+}
+
+// ── Modal komentar dari beranda ──
+function openCommentModal(e, playlistKey, playlistName) {
+  e.stopPropagation();
+  if (!currentUser) { toast('⚠️ Login dulu untuk berkomentar'); return; }
+
+  _currentCommentKey = playlistKey;
+  const modal = document.getElementById('comment-modal');
+  const title = document.getElementById('cm-modal-title');
+  const listEl = document.getElementById('cm-modal-list');
+  const textarea = document.getElementById('cm-modal-textarea');
+  const sendBtn = document.getElementById('cm-modal-send-btn');
+  const selfAvatar = document.getElementById('cm-modal-self-avatar');
+
+  title.textContent = '💬 ' + playlistName;
+  listEl.innerHTML = '<div class="comment-loading">Memuat komentar...</div>';
+  textarea.value = '';
+  sendBtn.disabled = true;
+
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  // Avatar
+  db.ref('users/' + currentUser.uid + '/profile').get().then(snap => {
+    const p = snap?.val() || {};
+    const photo = p.photoURL || p.photoBase64 || currentUser.photoURL || '';
+    selfAvatar.innerHTML = photo ? `<img src="${esc(photo)}" alt="">` : '👤';
+  }).catch(() => {});
+
+  // Setup input — clone dulu untuk reset listeners lama
+  const newSendBtn = sendBtn.cloneNode(true);
+  sendBtn.replaceWith(newSendBtn);
+  const newTextarea = textarea.cloneNode(true);
+  textarea.replaceWith(newTextarea);
+  setupCommentInput(newTextarea, newSendBtn, playlistKey, true);
+
+  // Detach listener lama & pasang baru
+  if (_cmModalListener) { _cmModalListener(); _cmModalListener = null; }
+  _cmModalListener = listenComments(playlistKey, listEl, 'modal');
+
+  setTimeout(() => newTextarea.focus(), 300);
+}
+
+function closeCommentModal() {
+  if (_cmModalListener) { _cmModalListener(); _cmModalListener = null; }
+  _currentCommentKey = null;
+  const modal = document.getElementById('comment-modal');
+  modal.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ── Hook ke openPublicPlaylist untuk otomatis tampilkan komentar ──
+const _origOpenPublicPlaylist = openPublicPlaylist;
+openPublicPlaylist = async function(pl) {
+  await _origOpenPublicPlaylist(pl);
+  // Tampilkan komentar hanya untuk playlist publik (bukan milik sendiri juga bisa)
+  showPvComments(pl.key);
+};
+
+// ── Hook ke backFromPlaylist untuk sembunyikan komentar ──
+const _origBackFromPlaylist = backFromPlaylist;
+backFromPlaylist = function() {
+  hidePvComments();
+  _origBackFromPlaylist();
+};
 
 // Hook ke showApp untuk mulai listener setelah login
 const _origShowAppNotif = showApp;
