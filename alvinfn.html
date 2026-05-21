@@ -801,154 +801,131 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
 #fs-style-btn.active { color: var(--green); box-shadow: 0 0 12px rgba(29,107,219,.5); }
 
 /* ══════════════════════════════════════════════════════════
-   KINETIC TYPOGRAPHY MODE — Fullscreen
+   KINETIC TYPOGRAPHY MODE — Word-by-word, music-synced
 ══════════════════════════════════════════════════════════ */
-#fs-lyr.kinetic-mode #fs-lyr-scroll {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 0; overflow: hidden;
-}
+#fs-lyr.kinetic-mode #fs-lyr-scroll { display: none; }
 #kinetic-stage {
   display: none; position: absolute; inset: 0; z-index: 2;
   align-items: center; justify-content: center; flex-direction: column;
   overflow: hidden; padding: 0 8%;
+  pointer-events: none;
 }
 #fs-lyr.kinetic-mode #kinetic-stage { display: flex; }
-#fs-lyr.kinetic-mode #fs-lyr-scroll { display: none; }
 
-/* Kinetic line container */
-.k-line-wrap {
-  position: relative; width: 100%; display: flex; flex-direction: column;
-  align-items: center; gap: 0; pointer-events: none;
-}
-
-/* Each lyric line in kinetic mode */
+/* ── Baris konteks (prev / next) ── */
 .k-line {
   font-family: 'Outfit', sans-serif;
   font-weight: 800;
-  line-height: 1.1;
+  line-height: 1.15;
   text-align: center;
   width: 100%;
   letter-spacing: -0.5px;
-  transition: all .5s cubic-bezier(.22,1,.36,1);
+  position: absolute; left: 0; right: 0;
   will-change: transform, opacity, filter;
-  position: absolute;
-  left: 0; right: 0;
+  transition: opacity .5s ease, filter .5s ease, transform .5s cubic-bezier(.22,1,.36,1);
 }
-
-/* Previous line (above) */
 .k-line.k-prev {
-  font-size: clamp(1rem, 3.5vw, 1.6rem);
-  color: rgba(255,255,255,0.2);
-  top: 15%;
-  transform: translateY(0) scale(0.88);
-  filter: blur(1.5px);
+  font-size: clamp(.9rem, 3vw, 1.4rem);
+  color: rgba(255,255,255,0.18);
+  top: 12%; filter: blur(1.5px);
+  transform: scale(0.88);
 }
-/* Active line — single word display */
-.k-line.k-cur {
-  font-size: clamp(2rem, 8vw, 4.5rem);
-  color: #fff;
-  top: 50%;
-  transform: translateY(-50%);
-  filter: none;
-  text-shadow: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 1.2em;
-}
-/* Next line (below) */
 .k-line.k-next {
-  font-size: clamp(1rem, 3.5vw, 1.6rem);
-  color: rgba(255,255,255,0.2);
-  bottom: 0;
-  transform: translateY(0) scale(0.88);
-  filter: blur(1.5px);
+  font-size: clamp(.9rem, 3vw, 1.4rem);
+  color: rgba(255,255,255,0.18);
+  bottom: 12%; filter: blur(1.5px);
+  transform: scale(0.88);
 }
 
-/* Word-by-word animation on active line — ONE word at a time */
+/* ── Stage kata-kata aktif ── */
+#k-word-stage {
+  position: absolute; left: 4%; right: 4%;
+  top: 50%; transform: translateY(-50%);
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: center;
+  gap: 4px 10px;
+  pointer-events: none;
+}
+
+/* Setiap kata dimulai tak terlihat */
 .k-word {
   display: inline-block;
-  /* Initial state: hidden below */
-  opacity: 0;
-  transform: translateY(28px) scale(0.88);
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  font-size: clamp(1.5rem, 5.5vw, 3rem);
+  letter-spacing: -0.5px;
+  line-height: 1.15;
+  color: rgba(255,255,255,0.12);
   filter: blur(4px);
-  transition: none;
+  transform: translateY(18px) scale(0.82);
+  opacity: 0;
+  transition: none; /* dikontrol via JS + class */
+  will-change: transform, opacity, filter, color;
 }
-.k-word.k-word-visible {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-  filter: none;
-  transition:
-    opacity .18s cubic-bezier(.22,1,.36,1),
-    transform .22s cubic-bezier(.34,1.56,.64,1),
-    filter .18s ease;
-  text-shadow: 0 0 40px rgba(255,255,255,0.35), 0 0 80px rgba(29,107,219,0.45);
-}
+
+/* State: kata baru saja muncul (animasi masuk) */
 .k-word.k-word-enter {
-  opacity: 0;
-  transform: translateY(28px) scale(0.88);
-  filter: blur(4px);
+  animation: kw-enter .22s cubic-bezier(.34,1.56,.64,1) forwards;
 }
-.k-word.k-word-exit {
-  opacity: 0 !important;
-  transform: translateY(-22px) scale(0.92) !important;
-  filter: blur(6px) !important;
-  transition:
-    opacity .1s ease,
-    transform .12s ease,
-    filter .1s ease !important;
+@keyframes kw-enter {
+  0%   { transform: translateY(22px) scale(0.78); opacity: 0; filter: blur(6px); color: rgba(255,255,255,0.1); }
+  60%  { opacity: 1; filter: blur(0); color: #fff; }
+  100% { transform: translateY(0) scale(1); opacity: 1; filter: blur(0); color: #fff; }
 }
 
-/* Line transition animations */
-@keyframes k-enter-from-bottom {
-  from { transform: translateY(-50%) translateY(60px) scale(0.85); opacity: 0; filter: blur(8px); }
-  to   { transform: translateY(-50%) scale(1); opacity: 1; filter: none; }
-}
-@keyframes k-exit-to-top {
-  from { transform: translateY(0) scale(0.88); opacity: 0.2; filter: blur(1.5px); }
-  to   { transform: translateY(-20px) scale(0.82); opacity: 0; filter: blur(4px); }
-}
-@keyframes k-enter-from-below {
-  from { transform: translateY(20px) scale(0.82); opacity: 0; filter: blur(4px); }
-  to   { transform: translateY(0) scale(0.88); opacity: 0.2; filter: blur(1.5px); }
+/* State: kata sedang aktif (lit up) */
+.k-word.k-word-lit {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  filter: blur(0);
+  color: #fff;
+  text-shadow: 0 0 28px rgba(255,255,255,0.9), 0 0 55px rgba(29,107,219,0.7);
 }
 
-.k-line.k-cur.k-entering {
-  animation: k-enter-from-bottom .45s cubic-bezier(.22,1,.36,1) forwards;
+/* State: kata sudah terlewati */
+.k-word.k-word-past {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  filter: blur(0);
+  color: rgba(255,255,255,0.38);
+  text-shadow: none;
+  transition: color .35s ease, text-shadow .35s ease;
 }
-.k-line.k-prev.k-exiting {
-  animation: k-exit-to-top .4s cubic-bezier(.22,1,.36,1) forwards;
+
+/* Animasi ganti baris: stage geser */
+@keyframes kw-stage-in {
+  from { opacity: 0; transform: translateY(-50%) translateY(40px); }
+  to   { opacity: 1; transform: translateY(-50%) translateY(0); }
 }
-.k-line.k-next.k-entering-next {
-  animation: k-enter-from-below .4s cubic-bezier(.22,1,.36,1) forwards;
+#k-word-stage.k-stage-enter {
+  animation: kw-stage-in .38s cubic-bezier(.22,1,.36,1) forwards;
 }
 
 /* Motion blur overlay on transition */
 #k-blur-overlay {
   position: absolute; inset: 0; pointer-events: none; z-index: 5;
-  background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.6) 50%, rgba(0,0,0,0) 100%);
-  opacity: 0; transition: opacity .15s;
+  background: radial-gradient(ellipse 80% 40% at 50% 50%, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 100%);
+  opacity: 0;
 }
-#k-blur-overlay.flash { opacity: 1; animation: k-blur-flash .4s ease forwards; }
+#k-blur-overlay.flash { animation: k-blur-flash .4s ease forwards; }
 @keyframes k-blur-flash {
-  0%   { opacity: 0.8; filter: blur(0); }
-  40%  { opacity: 0.4; filter: blur(2px); }
+  0%   { opacity: 0.85; filter: blur(3px); }
+  50%  { opacity: 0.4; filter: blur(1px); }
   100% { opacity: 0; filter: blur(0); }
 }
 
-/* Progress dots for current line (beat indicators) */
+/* Progress dots */
 #k-progress-dots {
   position: absolute; bottom: 140px; left: 0; right: 0; z-index: 4;
   display: flex; justify-content: center; gap: 6px; pointer-events: none;
 }
 .k-dot {
   width: 5px; height: 5px; border-radius: 50%;
-  background: rgba(255,255,255,0.25); transition: all .15s;
+  background: rgba(255,255,255,0.2); transition: all .15s;
 }
 .k-dot.lit {
   background: #fff;
   box-shadow: 0 0 8px rgba(255,255,255,0.8);
-  transform: scale(1.3);
+  transform: scale(1.35);
 }
 
 /* Gaya Teks style picker modal */
@@ -967,9 +944,9 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
 
 @media(max-width:660px){
   #lyr-style-btn { display: none; }
-  #kinetic-stage { padding: 0 6%; }
-  .k-line.k-cur { font-size: clamp(1.8rem, 9vw, 3.2rem); }
-  .k-line.k-prev, .k-line.k-next { font-size: clamp(.9rem, 3.5vw, 1.3rem); }
+  #kinetic-stage { padding: 0 5%; }
+  .k-word { font-size: clamp(1.2rem, 6.5vw, 2rem); }
+  .k-line.k-prev, .k-line.k-next { font-size: clamp(.8rem, 3vw, 1.1rem); }
   #k-progress-dots { bottom: 120px; }
 }
 </style>
@@ -1320,11 +1297,12 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
   </div>
   <!-- Kinetic Typography Stage -->
   <div id="kinetic-stage">
-    <div class="k-line-wrap" id="k-line-wrap">
-      <div class="k-line k-prev" id="k-prev"></div>
-      <div class="k-line k-cur" id="k-cur"></div>
-      <div class="k-line k-next" id="k-next"></div>
-    </div>
+    <!-- Baris konteks atas (sebelumnya) -->
+    <div class="k-line k-prev" id="k-prev"></div>
+    <!-- Stage kata-kata per-kata aktif -->
+    <div id="k-word-stage"></div>
+    <!-- Baris konteks bawah (berikutnya) -->
+    <div class="k-line k-next" id="k-next"></div>
     <div id="k-blur-overlay"></div>
     <div id="k-progress-dots"></div>
   </div>
@@ -2383,7 +2361,11 @@ closeFS = function() {
 let _lyrStyle = localStorage.getItem('lyrStyle') || 'classic'; // 'classic' | 'kinetic'
 let _kineticIdx = -1;
 let _kWordTimer = null;
+let _kBeatTimer = null;
 let _kDotTimer = null;
+let _kRafId = null;
+let _kWordTimestamps = [];
+let _kWordLitIdx = -1;
 
 function openStylePicker() {
   document.getElementById('style-picker-modal').style.display = 'flex';
@@ -2407,6 +2389,8 @@ function selectLyrStyle(style) {
     if (styleBtn) styleBtn.classList.add('active');
     if (sideBtn) sideBtn.classList.add('active');
     _kineticIdx = -1;
+    _kWordLitIdx = -1;
+    _kWordTimestamps = [];
     if (lyrs.length) updateKinetic();
   } else {
     fsEl.classList.remove('kinetic-mode');
@@ -2420,104 +2404,120 @@ function selectLyrStyle(style) {
 
 function clearKineticTimers() {
   if (_kWordTimer) clearTimeout(_kWordTimer);
+  if (_kBeatTimer) clearTimeout(_kBeatTimer);
   if (_kDotTimer) clearTimeout(_kDotTimer);
+  if (_kRafId) { cancelAnimationFrame(_kRafId); _kRafId = null; }
 }
+
+// ─── Sistem baru: word-by-word sync via requestAnimationFrame ───
+
+let _kRafId = null;         // rAF handle
+let _kWordTimestamps = [];  // [{t: seconds, el: span}] untuk baris aktif
+let _kWordLitIdx = -1;      // indeks kata yang terakhir dinyalakan
 
 function updateKinetic() {
   if (_lyrStyle !== 'kinetic' || !lyrs.length) return;
-  // Find active line index
   let idx = 0;
   for (let i = 0; i < lyrs.length; i++) { if (cur >= lyrs[i].time) idx = i; else break; }
-  if (idx === _kineticIdx) return; // no line change needed
-  const changed = _kineticIdx !== idx;
+  if (idx === _kineticIdx) return;
   _kineticIdx = idx;
-  renderKineticLines(idx, changed);
+  renderKineticLines(idx);
 }
 
-function renderKineticLines(idx, animate) {
-  const prevEl = document.getElementById('k-prev');
-  const curEl  = document.getElementById('k-cur');
-  const nextEl = document.getElementById('k-next');
-  if (!prevEl || !curEl || !nextEl) return;
+function renderKineticLines(idx) {
+  const prevEl  = document.getElementById('k-prev');
+  const nextEl  = document.getElementById('k-next');
+  const stage   = document.getElementById('k-word-stage');
+  if (!prevEl || !nextEl || !stage) return;
 
   const prevLine = idx > 0 ? lyrs[idx - 1].text : '';
   const curLine  = lyrs[idx].text;
   const nextLine = idx < lyrs.length - 1 ? lyrs[idx + 1].text : '';
 
-  // Prev / next: show full line text (small, blurred)
+  // Baris konteks
   prevEl.textContent = prevLine;
   nextEl.textContent = nextLine;
 
-  // Stop any running word animation
-  clearKineticTimers();
+  // Hitung durasi baris aktif (sampai baris berikutnya atau +3 detik)
+  const lineStart = lyrs[idx].time;
+  const lineEnd   = idx < lyrs.length - 1 ? lyrs[idx + 1].time : lineStart + 3;
+  const lineDur   = Math.max(lineEnd - lineStart, 0.5);
 
-  // Work out word timing from line duration
-  const lineDur = idx < lyrs.length - 1
-    ? (lyrs[idx + 1].time - lyrs[idx].time)
-    : 3;
-  const words = curLine.split(/\s+/).filter(Boolean);
-  // Each word gets equal slice of the line duration, min 120ms
-  const wordDur = Math.max(120, (lineDur * 1000) / Math.max(words.length, 1));
+  // Motion blur flash
+  const overlay = document.getElementById('k-blur-overlay');
+  if (overlay) { overlay.classList.remove('flash'); void overlay.offsetWidth; overlay.classList.add('flash'); }
 
-  // Line-change motion blur flash
-  if (animate) {
-    const overlay = document.getElementById('k-blur-overlay');
-    if (overlay) { overlay.classList.remove('flash'); void overlay.offsetWidth; overlay.classList.add('flash'); }
-    prevEl.classList.add('k-exiting');
-    nextEl.classList.add('k-entering-next');
-    setTimeout(() => {
-      prevEl.classList.remove('k-exiting');
-      nextEl.classList.remove('k-entering-next');
-    }, 500);
-  }
+  // Buat elemen kata di stage — semuanya mulai tersembunyi
+  stage.innerHTML = '';
+  stage.classList.remove('k-stage-enter');
 
-  // Build progress dots
+  const words = curLine.trim().split(/\s+/).filter(Boolean);
+  _kWordTimestamps = [];
+  _kWordLitIdx = -1;
+
+  words.forEach((w, i) => {
+    const sp = document.createElement('span');
+    sp.className = 'k-word';
+    sp.textContent = w;
+    stage.appendChild(sp);
+
+    // Timestamp setiap kata: proporsional dalam durasi baris
+    // Berikan jeda awal kecil (5% durasi baris) lalu bagi rata
+    const frac = words.length > 1
+      ? 0.05 + (i / (words.length - 1)) * 0.9
+      : 0.3;
+    _kWordTimestamps.push({ t: lineStart + frac * lineDur, el: sp });
+  });
+
+  // Animasi masuk stage
+  void stage.offsetWidth;
+  stage.classList.add('k-stage-enter');
+
+  // Progress dots
   buildProgressDots(words.length);
 
-  // ── Word-by-word: show ONE word at a time in the centre slot ──
-  let wordIdx = 0;
+  // Mulai rAF loop (restart jika sudah jalan)
+  if (_kRafId) cancelAnimationFrame(_kRafId);
+  _kRafWordLoop();
+}
 
-  function showWord(i) {
-    if (i >= words.length) {
-      // All words done — hold last word until next line kicks in
-      return;
+function _kRafWordLoop() {
+  if (_lyrStyle !== 'kinetic') return;
+
+  const nowSec = cur; // `cur` diupdate oleh loop utama via updateFSProg / onTimeUpdate
+
+  // Nyalakan kata sesuai waktu
+  for (let i = 0; i < _kWordTimestamps.length; i++) {
+    const wt = _kWordTimestamps[i];
+    if (nowSec >= wt.t && i > _kWordLitIdx) {
+      // Nyalakan kata i
+      if (_kWordLitIdx >= 0) {
+        // Kata sebelumnya → past
+        _kWordTimestamps[_kWordLitIdx].el.classList.remove('k-word-lit', 'k-word-enter');
+        _kWordTimestamps[_kWordLitIdx].el.classList.add('k-word-past');
+      }
+      wt.el.classList.remove('k-word-past');
+      wt.el.classList.add('k-word-enter');
+      // Setelah animasi masuk, tambah k-word-lit
+      const el = wt.el;
+      setTimeout(() => {
+        el.classList.remove('k-word-enter');
+        el.classList.add('k-word-lit');
+      }, 200);
+      _kWordLitIdx = i;
+
+      // Update progress dot
+      updateDot(i, _kWordTimestamps.length);
     }
-
-    // Clear current content, put new word with enter animation
-    curEl.innerHTML = '';
-    const sp = document.createElement('span');
-    sp.className = 'k-word k-word-enter';
-    sp.textContent = words[i];
-    curEl.appendChild(sp);
-
-    // Trigger enter animation (reflow trick)
-    void sp.offsetWidth;
-    sp.classList.add('k-word-visible');
-
-    updateDot(i, words.length);
-
-    _kWordTimer = setTimeout(() => {
-      // Exit animation on current word
-      sp.classList.add('k-word-exit');
-      // Small overlap: start next word shortly after exit begins
-      _kWordTimer = setTimeout(() => showWord(i + 1), 80);
-    }, wordDur - 80);
   }
 
-  // First word — enter from bottom if new line, else just pop in
-  if (animate) {
-    curEl.innerHTML = '';
-    // brief pause so line-change blur flash has time to show
-    _kWordTimer = setTimeout(() => showWord(0), 80);
-  } else {
-    showWord(0);
-  }
+  _kRafId = requestAnimationFrame(_kRafWordLoop);
 }
 
 function buildProgressDots(count) {
   const wrap = document.getElementById('k-progress-dots');
   if (!wrap) return;
-  const n = Math.min(count, 10);
+  const n = Math.min(count, 8);
   wrap.innerHTML = '';
   for (let i = 0; i < n; i++) {
     const d = document.createElement('div');
@@ -2528,7 +2528,7 @@ function buildProgressDots(count) {
 }
 
 function updateDot(wordIdx, total) {
-  const n = Math.min(total, 10);
+  const n = Math.min(total, 8);
   const dotIdx = Math.round((wordIdx / Math.max(total - 1, 1)) * (n - 1));
   for (let i = 0; i < n; i++) {
     const d = document.getElementById('k-dot-' + i);
@@ -2559,6 +2559,8 @@ openFS = function() {
     if (styleBtn) styleBtn.classList.add('active');
     if (sideBtn) sideBtn.classList.add('active');
     _kineticIdx = -1;
+    _kWordLitIdx = -1;
+    _kWordTimestamps = [];
     if (lyrs.length) updateKinetic();
   } else {
     fsEl.classList.remove('kinetic-mode');
