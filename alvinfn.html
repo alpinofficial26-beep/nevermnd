@@ -949,6 +949,146 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
   .k-line.k-prev, .k-line.k-next { font-size: clamp(.8rem, 3vw, 1.1rem); }
   #k-progress-dots { bottom: 120px; }
 }
+
+/* ══════════════════════════════════════════════════════════
+   NOTIFIKASI
+══════════════════════════════════════════════════════════ */
+.notif-bell-wrap {
+  position: relative;
+}
+.notif-bell-btn {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 10px; border-radius: var(--rs);
+  cursor: pointer; border: none; background: none;
+  color: var(--sub); font-family: var(--f);
+  font-size: .83rem; font-weight: 500;
+  width: 100%; transition: all .18s; text-align: left;
+}
+.notif-bell-btn:hover { background: var(--hover); color: var(--text); }
+.notif-bell-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+.notif-badge {
+  background: var(--green);
+  color: #fff; font-size: .6rem; font-weight: 800;
+  border-radius: 50px; padding: 1px 6px;
+  min-width: 18px; text-align: center;
+  margin-left: auto; line-height: 1.6;
+  display: none;
+}
+.notif-badge.show { display: block; }
+
+/* Panel notifikasi */
+#notif-panel {
+  position: fixed; top: 0; right: -360px;
+  width: 340px; height: 100vh;
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+  z-index: 800;
+  display: flex; flex-direction: column;
+  transition: right .3s cubic-bezier(.22,1,.36,1);
+  box-shadow: -8px 0 32px rgba(0,0,0,.4);
+}
+#notif-panel.open { right: 0; }
+.notif-panel-head {
+  padding: 18px 16px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.notif-panel-title {
+  font-size: .93rem; font-weight: 700;
+  display: flex; align-items: center; gap: 8px;
+}
+.notif-panel-title svg { width: 17px; height: 17px; color: var(--green); }
+.notif-panel-actions { display: flex; gap: 6px; }
+.notif-clear-btn {
+  background: none; border: 1px solid var(--border);
+  border-radius: 50px; padding: 4px 12px;
+  color: var(--sub); font-family: var(--f);
+  font-size: .7rem; cursor: pointer; transition: all .18s;
+}
+.notif-clear-btn:hover { color: var(--text); border-color: var(--green); }
+.notif-close-btn {
+  background: none; border: none; color: var(--sub);
+  cursor: pointer; padding: 6px; border-radius: 8px;
+  display: flex; align-items: center; transition: all .18s;
+}
+.notif-close-btn:hover { color: var(--text); background: var(--hover); }
+.notif-close-btn svg { width: 18px; height: 18px; }
+
+#notif-list {
+  flex: 1; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: var(--hover) transparent;
+}
+.notif-empty {
+  text-align: center; padding: 60px 20px;
+  color: var(--muted); font-size: .82rem; line-height: 1.8;
+}
+.notif-empty span { display: block; font-size: 2.2rem; margin-bottom: 10px; }
+
+.notif-item {
+  display: flex; gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  transition: background .15s; cursor: default;
+  position: relative;
+}
+.notif-item:hover { background: var(--hover); }
+.notif-item.unread::before {
+  content: ''; position: absolute;
+  left: 0; top: 0; bottom: 0; width: 3px;
+  background: var(--green); border-radius: 0 3px 3px 0;
+}
+.notif-avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--hover); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; overflow: hidden; border: 2px solid var(--border);
+}
+.notif-avatar img {
+  width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
+}
+.notif-icon-wrap {
+  width: 40px; height: 40px; border-radius: 50%;
+  flex-shrink: 0; display: flex; align-items: center;
+  justify-content: center; font-size: 1.2rem;
+}
+.notif-icon-like { background: rgba(255,90,90,.15); }
+.notif-icon-comment { background: rgba(29,107,219,.15); }
+.notif-body { flex: 1; min-width: 0; }
+.notif-msg {
+  font-size: .82rem; line-height: 1.55;
+  color: var(--text); margin-bottom: 4px;
+}
+.notif-msg strong { color: var(--text); font-weight: 700; }
+.notif-msg .notif-pl { color: var(--green); font-weight: 600; }
+.notif-time {
+  font-size: .68rem; color: var(--muted);
+  display: flex; align-items: center; gap: 4px;
+}
+.notif-comment-preview {
+  margin-top: 6px; background: var(--card);
+  border-left: 2px solid var(--green);
+  border-radius: 0 6px 6px 0;
+  padding: 6px 10px;
+  font-size: .75rem; color: var(--sub);
+  font-style: italic; line-height: 1.5;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Overlay gelap di belakang panel */
+#notif-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.4);
+  z-index: 799; display: none; backdrop-filter: blur(2px);
+}
+#notif-overlay.show { display: block; }
+
+/* Mobile adjustments */
+@media(max-width:660px) {
+  #notif-panel {
+    width: 100vw; right: -100vw;
+    border-left: none;
+  }
+  #notif-panel.open { right: 0; }
+}
 </style>
 <body>
 
@@ -993,6 +1133,13 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
     <div class="cloud-indicator" id="cloud-indicator">
       <div class="cloud-dot" id="cloud-dot"></div>
       <span id="cloud-status">Tidak terhubung</span>
+    </div>
+    <div class="notif-bell-wrap">
+      <button class="notif-bell-btn" onclick="toggleNotifPanel()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        Notifikasi
+        <span class="notif-badge" id="notif-badge">0</span>
+      </button>
     </div>
     <button class="side-nav-btn" onclick="window.location.href='profile.html'">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v2h20v-2c0-3.3-6.7-5-10-5z"/></svg>
@@ -1349,6 +1496,11 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v2h20v-2c0-3.3-6.7-5-10-5z"/></svg>
     Profil
   </button>
+  <button class="mob-nav-btn" id="mob-btn-notif" onclick="toggleNotifPanel()" style="position:relative;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    Notif
+    <span class="notif-badge" id="mob-notif-badge" style="position:absolute;top:4px;right:16px;margin:0;"></span>
+  </button>
 </div>
 
 <!-- Lyrics Background Modal -->
@@ -1401,6 +1553,31 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
     </div>
     <div class="mbtns">
       <button class="btn-s" onclick="closeStylePicker()">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- Notification Overlay -->
+<div id="notif-overlay" onclick="closeNotifPanel()"></div>
+
+<!-- Notification Panel -->
+<div id="notif-panel">
+  <div class="notif-panel-head">
+    <div class="notif-panel-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      Notifikasi
+    </div>
+    <div class="notif-panel-actions">
+      <button class="notif-clear-btn" onclick="clearAllNotifications()">Hapus semua</button>
+      <button class="notif-close-btn" onclick="closeNotifPanel()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+  </div>
+  <div id="notif-list">
+    <div class="notif-empty">
+      <span>🔔</span>
+      Belum ada notifikasi.<br>Saat ada yang like atau<br>komentar playlistmu,<br>akan muncul di sini.
     </div>
   </div>
 </div>
@@ -3100,6 +3277,268 @@ function updatePublishBtn(isPublic) {
 
 </script>
 <script>
+// ─── SISTEM NOTIFIKASI ──────────────────────────────────
+// Menyimpan notifikasi di Firebase: users/{uid}/notifications/{notifId}
+// Listener real-time untuk like & komentar di semua playlist publik milik user
+
+let _notifListeners = []; // simpan ref agar bisa di-detach
+
+function timeAgo(ts) {
+  const diff = Date.now() - ts;
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'Baru saja';
+  if (m < 60) return m + ' menit lalu';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + ' jam lalu';
+  const d = Math.floor(h / 24);
+  if (d < 7) return d + ' hari lalu';
+  return new Date(ts).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: '2-digit' });
+}
+
+function toggleNotifPanel() {
+  const panel = document.getElementById('notif-panel');
+  const overlay = document.getElementById('notif-overlay');
+  if (panel.classList.contains('open')) {
+    closeNotifPanel();
+  } else {
+    panel.classList.add('open');
+    overlay.classList.add('show');
+    markAllRead();
+  }
+}
+
+function closeNotifPanel() {
+  document.getElementById('notif-panel').classList.remove('open');
+  document.getElementById('notif-overlay').classList.remove('show');
+}
+
+async function markAllRead() {
+  if (!currentUser) return;
+  const snap = await db.ref('users/' + currentUser.uid + '/notifications').orderByChild('read').equalTo(false).get().catch(() => null);
+  if (!snap || !snap.exists()) return;
+  const updates = {};
+  snap.forEach(child => { updates[child.key + '/read'] = true; });
+  db.ref('users/' + currentUser.uid + '/notifications').update(updates).catch(() => {});
+  // Update badge
+  updateNotifBadge(0);
+}
+
+async function clearAllNotifications() {
+  if (!currentUser) return;
+  if (!confirm('Hapus semua notifikasi?')) return;
+  await db.ref('users/' + currentUser.uid + '/notifications').remove().catch(() => {});
+  renderNotifications([]);
+  updateNotifBadge(0);
+}
+
+function updateNotifBadge(count) {
+  const badge = document.getElementById('notif-badge');
+  const mobBadge = document.getElementById('mob-notif-badge');
+  if (!badge) return;
+  if (count > 0) {
+    badge.textContent = count > 99 ? '99+' : count;
+    badge.classList.add('show');
+    if (mobBadge) { mobBadge.textContent = count > 99 ? '99+' : count; mobBadge.classList.add('show'); }
+  } else {
+    badge.classList.remove('show');
+    if (mobBadge) mobBadge.classList.remove('show');
+  }
+}
+
+function renderNotifications(notifs) {
+  const list = document.getElementById('notif-list');
+  if (!list) return;
+  if (!notifs || !notifs.length) {
+    list.innerHTML = `<div class="notif-empty"><span>🔔</span>Belum ada notifikasi.<br>Saat ada yang like atau<br>komentar playlistmu,<br>akan muncul di sini.</div>`;
+    return;
+  }
+  // Sort terbaru dulu
+  const sorted = [...notifs].sort((a, b) => (b.ts || 0) - (a.ts || 0));
+  list.innerHTML = '';
+  sorted.forEach(n => {
+    const item = document.createElement('div');
+    item.className = 'notif-item' + (n.read ? '' : ' unread');
+
+    const isLike = n.type === 'like';
+    const icon = isLike
+      ? `<div class="notif-icon-wrap notif-icon-like">❤️</div>`
+      : `<div class="notif-icon-wrap notif-icon-comment">💬</div>`;
+
+    const photo = n.fromPhoto
+      ? `<div class="notif-avatar"><img src="${esc(n.fromPhoto)}" alt="" onerror="this.parentElement.textContent='👤'"></div>`
+      : `<div class="notif-avatar">👤</div>`;
+
+    const commentPrev = (!isLike && n.comment)
+      ? `<div class="notif-comment-preview">"${esc(n.comment.slice(0, 80))}${n.comment.length > 80 ? '…' : ''}"</div>`
+      : '';
+
+    item.innerHTML = `
+      ${n.fromPhoto ? photo : icon}
+      <div class="notif-body">
+        <div class="notif-msg">
+          <strong>${esc(n.fromName || 'Seseorang')}</strong>
+          ${isLike ? 'menyukai' : 'mengomentari'}
+          playlist <span class="notif-pl">${esc(n.playlistName || 'playlist')}</span>mu
+        </div>
+        ${commentPrev}
+        <div class="notif-time">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          ${timeAgo(n.ts || 0)}
+        </div>
+      </div>
+    `;
+    list.appendChild(item);
+  });
+}
+
+// Mulai listen notifikasi dari Firebase
+function startNotifListeners() {
+  if (!currentUser) return;
+
+  // Hapus listener lama
+  _notifListeners.forEach(off => off());
+  _notifListeners = [];
+
+  const notifRef = db.ref('users/' + currentUser.uid + '/notifications');
+
+  // Listen ke SEMUA notifikasi (read + unread) — render panel
+  const allOff = notifRef.orderByChild('ts').limitToLast(50).on('value', snap => {
+    const notifs = [];
+    if (snap.exists()) {
+      snap.forEach(child => { notifs.push({ _id: child.key, ...child.val() }); });
+    }
+    renderNotifications(notifs);
+
+    // Hitung unread
+    const unread = notifs.filter(n => !n.read).length;
+    // Hanya update badge kalau panel tidak sedang terbuka
+    const panelOpen = document.getElementById('notif-panel').classList.contains('open');
+    updateNotifBadge(panelOpen ? 0 : unread);
+  });
+  _notifListeners.push(() => notifRef.off('value', allOff));
+
+  // Listen ke playlist publik milik user → deteksi like & komentar baru
+  listenPublicPlaylistActivity();
+}
+
+// Ambil semua playlist publik milik user, lalu pasang listener
+async function listenPublicPlaylistActivity() {
+  if (!currentUser) return;
+
+  // Ambil semua key playlist publik milik user
+  const snap = await db.ref('public_playlists').orderByChild('ownerUid').equalTo(currentUser.uid).get().catch(() => null);
+  if (!snap || !snap.exists()) return;
+
+  snap.forEach(child => {
+    const key = child.key;
+    const plName = child.val().name || 'Playlist';
+    listenPlaylistLikes(key, plName);
+    listenPlaylistComments(key, plName);
+  });
+}
+
+// Simpan last-known likes agar tidak notifikasi yang sudah ada saat pertama load
+const _seenLikes = {};
+const _seenComments = {};
+let _initDone = false;
+
+function listenPlaylistLikes(key, plName) {
+  if (!currentUser) return;
+  const likesRef = db.ref('public_playlists/' + key + '/likes');
+
+  // Snapshot awal — tandai semua sebagai "sudah diketahui"
+  likesRef.get().then(snap => {
+    if (snap.exists()) {
+      snap.forEach(child => { _seenLikes[key + '_' + child.key] = true; });
+    }
+    _initDone = true;
+
+    // Baru pasang listener setelah init
+    const off = likesRef.on('child_added', async (likeSnap) => {
+      const likerUid = likeSnap.key;
+      if (!likerUid || likerUid === currentUser.uid) return; // ignore like sendiri
+      const seenKey = key + '_' + likerUid;
+      if (_seenLikes[seenKey]) return; // sudah diketahui
+      _seenLikes[seenKey] = true;
+
+      // Ambil profil liker
+      const profileSnap = await db.ref('users/' + likerUid + '/profile').get().catch(() => null);
+      const profile = profileSnap?.val() || {};
+      const fromName = profile.displayName || 'Seseorang';
+      const fromPhoto = profile.photoURL || profile.photoBase64 || '';
+
+      // Simpan notifikasi ke Firebase
+      const notif = {
+        type: 'like',
+        fromUid: likerUid,
+        fromName,
+        fromPhoto,
+        playlistKey: key,
+        playlistName: plName,
+        ts: Date.now(),
+        read: false
+      };
+      db.ref('users/' + currentUser.uid + '/notifications').push(notif).catch(() => {});
+    });
+    _notifListeners.push(() => likesRef.off('child_added', off));
+  });
+}
+
+function listenPlaylistComments(key, plName) {
+  if (!currentUser) return;
+  const commRef = db.ref('public_playlists/' + key + '/comments');
+
+  commRef.get().then(snap => {
+    if (snap.exists()) {
+      snap.forEach(child => { _seenComments[key + '_' + child.key] = true; });
+    }
+
+    const off = commRef.on('child_added', async (commSnap) => {
+      const commId = commSnap.key;
+      const data = commSnap.val();
+      if (!data) return;
+      const authorUid = data.uid || data.authorUid;
+      if (!authorUid || authorUid === currentUser.uid) return;
+      const seenKey = key + '_' + commId;
+      if (_seenComments[seenKey]) return;
+      _seenComments[seenKey] = true;
+
+      const profileSnap = await db.ref('users/' + authorUid + '/profile').get().catch(() => null);
+      const profile = profileSnap?.val() || {};
+      const fromName = data.authorName || profile.displayName || 'Seseorang';
+      const fromPhoto = data.authorPhoto || profile.photoURL || profile.photoBase64 || '';
+
+      const notif = {
+        type: 'comment',
+        fromUid: authorUid,
+        fromName,
+        fromPhoto,
+        playlistKey: key,
+        playlistName: plName,
+        comment: data.text || data.comment || '',
+        ts: Date.now(),
+        read: false
+      };
+      db.ref('users/' + currentUser.uid + '/notifications').push(notif).catch(() => {});
+    });
+    _notifListeners.push(() => commRef.off('child_added', off));
+  });
+}
+
+// Hook ke showApp untuk mulai listener setelah login
+const _origShowAppNotif = showApp;
+showApp = function(user) {
+  _origShowAppNotif(user);
+  setTimeout(() => startNotifListeners(), 1500); // delay agar playlist sudah di-publish dulu
+};
+
+// Re-scan playlist publik setelah publish/unpublish
+const _origTogglePublish = togglePublishPlaylist;
+window.togglePublishPlaylist = async function() {
+  await _origTogglePublish.apply(this, arguments);
+  setTimeout(() => listenPublicPlaylistActivity(), 2000);
+};
+
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').catch(console.error);
 }
