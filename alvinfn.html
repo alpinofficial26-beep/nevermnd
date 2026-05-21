@@ -856,9 +856,10 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
 }
 /* Baris aktif — kata-kata dirender sebagai span */
 #fs-lyr.kinetic-mode .fs-ll.active {
-  color: transparent; /* teks asli tersembunyi, kata-kata pakai span */
+  color: rgba(255,255,255,0); /* teks node asli transparan, span kata handle warnanya */
   filter: none;
   font-size: 1.75rem;
+  position: relative;
 }
 @media(max-width:700px) {
   #fs-lyr.kinetic-mode .fs-ll { font-size: 1.1rem; }
@@ -2113,8 +2114,8 @@ async function loadPlay(track, fromPlId){
   document.getElementById('fs-artist-name').textContent=track.title;
   document.getElementById('fs-lyr-scroll').innerHTML='<div class="lyr-empty" style="color:rgba(255,255,255,0.4);padding-top:80px"><i>⏳</i>Memuat lirik...</div>';
 
-  // Langsung buka fullscreen lyrics
-  openFS();
+  // Reset kinetic index saat lagu baru
+  _ktCurrentIdx = -1;
 
   const searchQ=`${track.artist} ${track.title} official audio`; toast('🔍 Mencari video...');
   const cl=cleanT(track.title);
@@ -2365,6 +2366,7 @@ function setLyrStyle(style, e) {
     fsEl.classList.remove('kinetic-mode');
     _clearKtTimers();
   }
+  _ktCurrentIdx = -1; // force full re-render
   // Tutup menu
   document.getElementById('lyr-style-menu').classList.remove('open');
   // Re-render lirik dengan gaya baru
@@ -2431,18 +2433,18 @@ updateFSLyr = function() {
   }
 
   // ── KINETIC MODE ──
-  // Kalau indeks tidak berubah, skip re-render penuh
-  if (idx === _ktCurrentIdx) return;
+  // Cek apakah DOM sudah dirender (jumlah baris cocok)
+  const existingLines = el.querySelectorAll('.fs-ll');
+  const needFullRender = existingLines.length !== lyrs.length || _ktCurrentIdx === -1;
 
-  const prevIdx = _ktCurrentIdx;
-  _ktCurrentIdx = idx;
-
-  // Kalau pertama kali atau beda jauh: render semua
-  if (prevIdx === -1 || Math.abs(idx - prevIdx) > 3) {
+  if (needFullRender) {
+    // Render penuh semua baris
+    _clearKtTimers();
     el.innerHTML = '';
     lyrs.forEach((l, i) => {
       const d = document.createElement('div');
       d.className = 'fs-ll ' + (i === idx ? 'active' : i < idx ? 'past' : 'upcoming');
+      d.dataset.time = l.time;
       if (i === idx) {
         _renderKineticLine(d, l.text);
       } else {
@@ -2451,22 +2453,27 @@ updateFSLyr = function() {
       d.addEventListener('click', () => { if (YTP) YTP.seekTo(l.time); });
       el.appendChild(d);
     });
-  } else {
+    _ktCurrentIdx = idx;
+  } else if (idx !== _ktCurrentIdx) {
     // Update incremental: ubah kelas tanpa rebuild DOM
     const allLines = el.querySelectorAll('.fs-ll');
+    const prevIdx = _ktCurrentIdx;
+    _ktCurrentIdx = idx;
+
     // Baris lama yang aktif → transisi keluar
     if (prevIdx >= 0 && allLines[prevIdx]) {
       const prevLine = allLines[prevIdx];
       prevLine.classList.remove('active');
       prevLine.classList.add('past', 'kt-exit');
-      // Setelah animasi selesai, hapus class animasi
       setTimeout(() => {
         prevLine.classList.remove('kt-exit');
-        // Kembalikan teks plain
-        if (!prevLine.dataset.plain) prevLine.dataset.plain = prevLine.innerText;
-        prevLine.textContent = prevLine.dataset.plain || '';
+        // Kembalikan ke teks plain (ambil dari data-time untuk cari teks)
+        const t = parseFloat(prevLine.dataset.time);
+        const lyrObj = lyrs.find(l => l.time === t);
+        if (lyrObj) prevLine.textContent = lyrObj.text;
       }, 380);
     }
+
     // Baris baru → aktif dengan animasi masuk kata per kata
     if (allLines[idx]) {
       const newLine = allLines[idx];
@@ -2475,17 +2482,22 @@ updateFSLyr = function() {
       setTimeout(() => newLine.classList.remove('kt-enter'), 500);
       _renderKineticLine(newLine, lyrs[idx].text);
     }
-    // Update kelas upcoming
+
+    // Update kelas baris lain
     allLines.forEach((line, i) => {
       if (i !== idx && i !== prevIdx) {
-        line.classList.remove('active', 'upcoming');
+        line.classList.remove('active', 'upcoming', 'kt-enter', 'kt-exit');
         line.classList.add(i < idx ? 'past' : 'upcoming');
       }
     });
+  } else {
+    // Indeks sama, tidak perlu apa-apa
+    return;
   }
 
   // Scroll ke baris aktif
-  const act = el.querySelectorAll('.fs-ll')[idx];
+  const allLines2 = el.querySelectorAll('.fs-ll');
+  const act = allLines2[idx];
   if (act) el.scrollTo({ top: act.offsetTop - el.offsetHeight / 2 + act.offsetHeight / 2, behavior: 'smooth' });
 
   // Beat indicator bar
