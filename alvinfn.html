@@ -2411,10 +2411,6 @@ function clearKineticTimers() {
 
 // ─── Sistem baru: word-by-word sync via requestAnimationFrame ───
 
-let _kRafId = null;         // rAF handle
-let _kWordTimestamps = [];  // [{t: seconds, el: span}] untuk baris aktif
-let _kWordLitIdx = -1;      // indeks kata yang terakhir dinyalakan
-
 function updateKinetic() {
   if (_lyrStyle !== 'kinetic' || !lyrs.length) return;
   let idx = 0;
