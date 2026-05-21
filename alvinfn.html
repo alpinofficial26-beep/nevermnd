@@ -839,19 +839,22 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
 .k-line.k-prev {
   font-size: clamp(1rem, 3.5vw, 1.6rem);
   color: rgba(255,255,255,0.2);
-  top: 0;
+  top: 15%;
   transform: translateY(0) scale(0.88);
   filter: blur(1.5px);
-  animation: k-prev-enter .5s cubic-bezier(.22,1,.36,1) forwards;
 }
-/* Active line */
+/* Active line — single word display */
 .k-line.k-cur {
-  font-size: clamp(1.6rem, 5.5vw, 3.2rem);
+  font-size: clamp(2rem, 8vw, 4.5rem);
   color: #fff;
   top: 50%;
   transform: translateY(-50%);
   filter: none;
-  text-shadow: 0 0 40px rgba(255,255,255,0.25), 0 2px 30px rgba(0,0,0,.5);
+  text-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.2em;
 }
 /* Next line (below) */
 .k-line.k-next {
@@ -862,26 +865,38 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
   filter: blur(1.5px);
 }
 
-/* Word-by-word animation on active line */
+/* Word-by-word animation on active line — ONE word at a time */
 .k-word {
   display: inline-block;
-  animation: k-word-float 0s ease both;
-  transition: color .12s, text-shadow .12s;
+  /* Initial state: hidden below */
+  opacity: 0;
+  transform: translateY(28px) scale(0.88);
+  filter: blur(4px);
+  transition: none;
 }
-.k-word.k-word-lit {
-  color: #fff;
-  text-shadow: 0 0 30px rgba(255,255,255,0.8), 0 0 60px rgba(29,107,219,0.6);
-  animation: k-word-pop .18s cubic-bezier(.34,1.56,.64,1) forwards;
+.k-word.k-word-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: none;
+  transition:
+    opacity .18s cubic-bezier(.22,1,.36,1),
+    transform .22s cubic-bezier(.34,1.56,.64,1),
+    filter .18s ease;
+  text-shadow: 0 0 40px rgba(255,255,255,0.35), 0 0 80px rgba(29,107,219,0.45);
 }
-.k-word.k-word-past {
-  color: rgba(255,255,255,0.45);
-  text-shadow: none;
+.k-word.k-word-enter {
+  opacity: 0;
+  transform: translateY(28px) scale(0.88);
+  filter: blur(4px);
 }
-
-@keyframes k-word-pop {
-  0%   { transform: scale(1) translateY(0); }
-  50%  { transform: scale(1.12) translateY(-3px); }
-  100% { transform: scale(1) translateY(0); }
+.k-word.k-word-exit {
+  opacity: 0 !important;
+  transform: translateY(-22px) scale(0.92) !important;
+  filter: blur(6px) !important;
+  transition:
+    opacity .1s ease,
+    transform .12s ease,
+    filter .1s ease !important;
 }
 
 /* Line transition animations */
@@ -906,17 +921,6 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
 }
 .k-line.k-next.k-entering-next {
   animation: k-enter-from-below .4s cubic-bezier(.22,1,.36,1) forwards;
-}
-
-/* Beat pulse on active line */
-@keyframes k-beat-pulse {
-  0%   { transform: translateY(-50%) scale(1); }
-  30%  { transform: translateY(-50%) scale(1.025); }
-  60%  { transform: translateY(-50%) scale(0.995); }
-  100% { transform: translateY(-50%) scale(1); }
-}
-.k-line.k-cur.k-beat {
-  animation: k-beat-pulse .35s cubic-bezier(.34,1.56,.64,1) forwards;
 }
 
 /* Motion blur overlay on transition */
@@ -964,7 +968,7 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
 @media(max-width:660px){
   #lyr-style-btn { display: none; }
   #kinetic-stage { padding: 0 6%; }
-  .k-line.k-cur { font-size: clamp(1.4rem, 7vw, 2.4rem); }
+  .k-line.k-cur { font-size: clamp(1.8rem, 9vw, 3.2rem); }
   .k-line.k-prev, .k-line.k-next { font-size: clamp(.9rem, 3.5vw, 1.3rem); }
   #k-progress-dots { bottom: 120px; }
 }
@@ -2379,7 +2383,6 @@ closeFS = function() {
 let _lyrStyle = localStorage.getItem('lyrStyle') || 'classic'; // 'classic' | 'kinetic'
 let _kineticIdx = -1;
 let _kWordTimer = null;
-let _kBeatTimer = null;
 let _kDotTimer = null;
 
 function openStylePicker() {
@@ -2417,7 +2420,6 @@ function selectLyrStyle(style) {
 
 function clearKineticTimers() {
   if (_kWordTimer) clearTimeout(_kWordTimer);
-  if (_kBeatTimer) clearTimeout(_kBeatTimer);
   if (_kDotTimer) clearTimeout(_kDotTimer);
 }
 
@@ -2442,75 +2444,80 @@ function renderKineticLines(idx, animate) {
   const curLine  = lyrs[idx].text;
   const nextLine = idx < lyrs.length - 1 ? lyrs[idx + 1].text : '';
 
-  // Set prev / next as plain text
+  // Prev / next: show full line text (small, blurred)
   prevEl.textContent = prevLine;
   nextEl.textContent = nextLine;
 
-  // Build cur as word-by-word spans
+  // Stop any running word animation
   clearKineticTimers();
-  curEl.innerHTML = '';
-  const words = curLine.split(' ');
-  words.forEach((w, i) => {
-    const sp = document.createElement('span');
-    sp.className = 'k-word';
-    sp.textContent = (i < words.length - 1) ? w + '\u00a0' : w;
-    curEl.appendChild(sp);
-  });
 
-  // Animate line change
+  // Work out word timing from line duration
+  const lineDur = idx < lyrs.length - 1
+    ? (lyrs[idx + 1].time - lyrs[idx].time)
+    : 3;
+  const words = curLine.split(/\s+/).filter(Boolean);
+  // Each word gets equal slice of the line duration, min 120ms
+  const wordDur = Math.max(120, (lineDur * 1000) / Math.max(words.length, 1));
+
+  // Line-change motion blur flash
   if (animate) {
-    // Motion blur flash
     const overlay = document.getElementById('k-blur-overlay');
     if (overlay) { overlay.classList.remove('flash'); void overlay.offsetWidth; overlay.classList.add('flash'); }
-
     prevEl.classList.add('k-exiting');
-    curEl.classList.add('k-entering');
     nextEl.classList.add('k-entering-next');
     setTimeout(() => {
       prevEl.classList.remove('k-exiting');
-      curEl.classList.remove('k-entering');
       nextEl.classList.remove('k-entering-next');
     }, 500);
   }
 
-  // Word-by-word lighting (estimate from line duration)
-  const lineDur = idx < lyrs.length - 1
-    ? (lyrs[idx + 1].time - lyrs[idx].time)
-    : 3;
-  const wordDur = Math.max(80, (lineDur * 1000) / Math.max(words.length, 1));
-  
-  animateWords(curEl.querySelectorAll('.k-word'), wordDur);
-  
-  // Beat pulse every ~600ms (estimated)
-  _kBeatTimer = setInterval(() => {
-    const c = document.getElementById('k-cur');
-    if (c) { c.classList.remove('k-beat'); void c.offsetWidth; c.classList.add('k-beat'); }
-  }, 600);
-
-  // Progress dots (max 8)
+  // Build progress dots
   buildProgressDots(words.length);
-}
 
-function animateWords(wordEls, wordDur) {
-  let i = 0;
-  const step = () => {
-    if (i > 0 && wordEls[i-1]) wordEls[i-1].classList.remove('k-word-lit');
-    if (i > 0 && wordEls[i-1]) wordEls[i-1].classList.add('k-word-past');
-    if (i < wordEls.length) {
-      wordEls[i].classList.add('k-word-lit');
-      // Update dot
-      updateDot(i, wordEls.length);
-      i++;
-      _kWordTimer = setTimeout(step, wordDur);
+  // ── Word-by-word: show ONE word at a time in the centre slot ──
+  let wordIdx = 0;
+
+  function showWord(i) {
+    if (i >= words.length) {
+      // All words done — hold last word until next line kicks in
+      return;
     }
-  };
-  step();
+
+    // Clear current content, put new word with enter animation
+    curEl.innerHTML = '';
+    const sp = document.createElement('span');
+    sp.className = 'k-word k-word-enter';
+    sp.textContent = words[i];
+    curEl.appendChild(sp);
+
+    // Trigger enter animation (reflow trick)
+    void sp.offsetWidth;
+    sp.classList.add('k-word-visible');
+
+    updateDot(i, words.length);
+
+    _kWordTimer = setTimeout(() => {
+      // Exit animation on current word
+      sp.classList.add('k-word-exit');
+      // Small overlap: start next word shortly after exit begins
+      _kWordTimer = setTimeout(() => showWord(i + 1), 80);
+    }, wordDur - 80);
+  }
+
+  // First word — enter from bottom if new line, else just pop in
+  if (animate) {
+    curEl.innerHTML = '';
+    // brief pause so line-change blur flash has time to show
+    _kWordTimer = setTimeout(() => showWord(0), 80);
+  } else {
+    showWord(0);
+  }
 }
 
 function buildProgressDots(count) {
   const wrap = document.getElementById('k-progress-dots');
   if (!wrap) return;
-  const n = Math.min(count, 8);
+  const n = Math.min(count, 10);
   wrap.innerHTML = '';
   for (let i = 0; i < n; i++) {
     const d = document.createElement('div');
@@ -2521,7 +2528,7 @@ function buildProgressDots(count) {
 }
 
 function updateDot(wordIdx, total) {
-  const n = Math.min(total, 8);
+  const n = Math.min(total, 10);
   const dotIdx = Math.round((wordIdx / Math.max(total - 1, 1)) * (n - 1));
   for (let i = 0; i < n; i++) {
     const d = document.getElementById('k-dot-' + i);
