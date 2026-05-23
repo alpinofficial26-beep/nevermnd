@@ -1087,6 +1087,7 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
 
 @media(max-width:660px){
   #lyr-style-btn { display: none; }
+  #lyr-offset-toggle { display: none; }
   #kinetic-stage { padding: 0 5%; }
   .k-word { font-size: clamp(1.2rem, 6.5vw, 2rem); }
   .k-line.k-prev, .k-line.k-next { font-size: clamp(.8rem, 3vw, 1.1rem); }
@@ -1519,6 +1520,15 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
   <div class="lyr-head">
     <div class="lyr-ttl">Lirik <span class="lyr-badge">Live</span></div>
     <div style="display:flex;align-items:center;gap:4px;">
+    <!-- Offset controls -->
+    <div id="lyr-offset-wrap" style="display:none;align-items:center;gap:2px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:2px 4px;">
+      <button onclick="adjustLyrOffset(-0.5)" title="Lirik terlalu cepat (mundurkan -0.5s)" style="background:none;border:none;color:var(--sub);cursor:pointer;padding:3px 5px;border-radius:5px;font-size:.75rem;font-weight:700;transition:all .15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--sub)'">−</button>
+      <span id="lyr-offset-val" style="font-size:.65rem;font-family:var(--fm);color:var(--green);min-width:32px;text-align:center;font-weight:700;">0.0s</span>
+      <button onclick="adjustLyrOffset(0.5)" title="Lirik terlalu lambat (majukan +0.5s)" style="background:none;border:none;color:var(--sub);cursor:pointer;padding:3px 5px;border-radius:5px;font-size:.75rem;font-weight:700;transition:all .15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--sub)'">+</button>
+    </div>
+    <button id="lyr-offset-toggle" onclick="toggleOffsetBar()" title="Kalibrasi sinkronisasi lirik" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:6px;border-radius:8px;display:flex;align-items:center;justify-content:center;transition:all .18s;" onmouseover="this.style.color='var(--text)';this.style.background='var(--hover)'" onmouseout="this.style.color='var(--muted)';this.style.background='none'">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+    </button>
     <button id="lyr-style-btn" onclick="openStylePicker()" title="Gaya teks lirik">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h10M4 17h6"/><circle cx="19" cy="17" r="2"/><path d="M19 15v-3"/></svg>
       Gaya
@@ -1653,6 +1663,12 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
         <path d="m21 15-5-5L5 21"/>
       </svg>
     </button>
+    <!-- Offset kalibrasi di fullscreen -->
+    <div id="fs-offset-wrap" style="display:flex;align-items:center;gap:3px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:3px 6px;">
+      <button onclick="adjustLyrOffset(-0.5)" title="Mundurkan lirik" style="background:none;border:none;color:rgba(255,255,255,0.6);cursor:pointer;padding:2px 6px;border-radius:6px;font-size:.85rem;font-weight:700;transition:all .15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.6)'">−</button>
+      <span id="fs-offset-val" style="font-size:.65rem;font-family:var(--fm);color:#fff;min-width:36px;text-align:center;font-weight:700;opacity:.9;">0.0s</span>
+      <button onclick="adjustLyrOffset(0.5)" title="Majukan lirik" style="background:none;border:none;color:rgba(255,255,255,0.6);cursor:pointer;padding:2px 6px;border-radius:6px;font-size:.85rem;font-weight:700;transition:all .15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.6)'">+</button>
+    </div>
     <button id="fs-pure-btn" title="Mode lirik penuh">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
         <path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/>
@@ -1836,6 +1852,7 @@ const WORKER = 'https://fancy-band-d65b.alpinofficial26.workers.dev';
 let YTP = null;
 let playing = false, cur = 0, tot = 0, raf = null;
 let lyrCache = {}, lyrs = [], curTrack = null;
+let lyrOffset = 0; // detik offset kalibrasi lirik (+ = majukan, - = mundurkan)
 let curQueue = []; // lagu yang sedang dalam antrian putar
 
 // Multi-playlist: { [id]: { id, name, cover, tracks: [] } }
@@ -2437,6 +2454,42 @@ function tick(){
 }
 
 function ft(s){ if(!s||isNaN(s))return'0:00'; return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'); }
+
+// ─── Lyric Offset (Kalibrasi Sinkronisasi) ───────────────
+function adjustLyrOffset(delta){
+  lyrOffset = Math.round((lyrOffset + delta) * 10) / 10;
+  // Batasi range -15s sampai +15s
+  lyrOffset = Math.max(-15, Math.min(15, lyrOffset));
+  const label = (lyrOffset >= 0 ? '+' : '') + lyrOffset.toFixed(1) + 's';
+  const sideVal = document.getElementById('lyr-offset-val');
+  const fsVal   = document.getElementById('fs-offset-val');
+  if (sideVal) sideVal.textContent = label;
+  if (fsVal)   fsVal.textContent   = label;
+  // Warna feedback: hijau jika ada offset, putih/muted jika 0
+  const col = lyrOffset !== 0 ? 'var(--green)' : '';
+  if (sideVal) sideVal.style.color = lyrOffset !== 0 ? 'var(--green)' : 'var(--sub)';
+  if (fsVal)   fsVal.style.color   = lyrOffset !== 0 ? '#7df' : 'rgba(255,255,255,0.85)';
+  // Force re-render lyric panel sekarang
+  syncLyr(cur);
+}
+
+function toggleOffsetBar(){
+  const wrap = document.getElementById('lyr-offset-wrap');
+  if(!wrap) return;
+  const isOpen = wrap.style.display === 'flex';
+  wrap.style.display = isOpen ? 'none' : 'flex';
+  const btn = document.getElementById('lyr-offset-toggle');
+  if(btn){ btn.style.color = isOpen ? 'var(--muted)' : 'var(--green)'; btn.style.background = isOpen ? 'none' : 'var(--green-dim)'; }
+}
+
+// Reset offset UI saat lagu baru
+function resetOffsetUI(){
+  lyrOffset = 0;
+  const sideVal = document.getElementById('lyr-offset-val');
+  const fsVal   = document.getElementById('fs-offset-val');
+  if(sideVal){ sideVal.textContent='0.0s'; sideVal.style.color='var(--sub)'; }
+  if(fsVal){   fsVal.textContent='0.0s';   fsVal.style.color='rgba(255,255,255,0.85)'; }
+}
 function updProg(){
   document.getElementById('t-cur').textContent=ft(cur);
   document.getElementById('t-tot').textContent=ft(tot);
@@ -2515,7 +2568,7 @@ async function resolveVid(query){
 }
 
 async function loadPlay(track, fromPlId){
-  cancelAnimationFrame(raf); playing=false; cur=0; tot=0; curTrack=track; lyrs=[];
+  cancelAnimationFrame(raf); playing=false; cur=0; tot=0; curTrack=track; lyrs=[]; resetOffsetUI();
   // Update now playing in playlist view
   if (fromPlId && currentPlaylistId === fromPlId) renderPlaylistView(fromPlId);
 
@@ -2594,8 +2647,9 @@ function pPlain(raw){
 }
 function syncLyr(ct){
   const el=document.getElementById('lyr-lines'); if(!el||!lyrs.length)return;
+  const t=ct+lyrOffset;
   let idx=0;
-  for(let i=0;i<lyrs.length;i++){if(ct>=lyrs[i].time)idx=i;else break;}
+  for(let i=0;i<lyrs.length;i++){if(t>=lyrs[i].time)idx=i;else break;}
   el.innerHTML='';
   lyrs.forEach((l,i)=>{
     const d=document.createElement('div');
@@ -2704,8 +2758,9 @@ function closeFS(){document.getElementById('fs-lyr').classList.remove('open');}
 function updateFSLyr(){
   const el=document.getElementById('fs-lyr-scroll');
   if(!lyrs.length){el.innerHTML='<div class="lyr-empty" style="color:rgba(255,255,255,0.4);padding-top:80px"><i>😔</i>Lirik tidak tersedia</div>';return;}
+  const t=cur+lyrOffset;
   let idx=0;
-  for(let i=0;i<lyrs.length;i++){if(cur>=lyrs[i].time)idx=i;else break;}
+  for(let i=0;i<lyrs.length;i++){if(t>=lyrs[i].time)idx=i;else break;}
   el.innerHTML='';
   lyrs.forEach((l,i)=>{
     const d=document.createElement('div');
@@ -2843,8 +2898,9 @@ function clearKineticTimers() {
 
 function updateKinetic() {
   if (_lyrStyle !== 'kinetic' || !lyrs.length) return;
+  const t = cur + lyrOffset;
   let idx = 0;
-  for (let i = 0; i < lyrs.length; i++) { if (cur >= lyrs[i].time) idx = i; else break; }
+  for (let i = 0; i < lyrs.length; i++) { if (t >= lyrs[i].time) idx = i; else break; }
   if (idx === _kineticIdx) return;
   _kineticIdx = idx;
   renderKineticLines(idx);
@@ -2939,7 +2995,7 @@ function renderKineticLines(idx) {
 function _kRafWordLoop() {
   if (_lyrStyle !== 'kinetic') return;
 
-  const nowSec = cur;
+  const nowSec = cur + lyrOffset;
 
   for (let i = 0; i < _kWordTimestamps.length; i++) {
     const wt = _kWordTimestamps[i];
