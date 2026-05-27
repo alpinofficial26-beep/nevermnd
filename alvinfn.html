@@ -2731,54 +2731,52 @@ function initPlayer(videoId) {
 // ─── Media Session: Klaim kepemilikan dari iframe YouTube ────
 // Chrome hanya memberikan kontrol notif OS ke sumber audio yang
 // benar-benar diputar di halaman (bukan iframe). Kita putar audio
-// senyap dari halaman ini agar tombol prev/next/play aktif.
+// senyap NYATA dari halaman ini agar tombol prev/next/play aktif.
+// KUNCI: harus ada PCM data nyata — WAV 0-byte TIDAK diakui Chrome.
 
 let _msAudio = null;
+let _silentBlobUrl = null;
 
-function _getSilentSrc() {
-  // Audio WAV 1 detik senyap dalam base64 (44100Hz, 16-bit, stereo, ~88KB → dikompres)
-  // Menggunakan audio pendek yang di-loop agar terus "aktif"
-  return (function(){
-    const ctx = new (window.AudioContext||window.webkitAudioContext)();
-    const buf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    src.connect(ctx.destination);
-    ctx.close();
-  }, 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
+function _makeSilentBlobUrl() {
+  // Buat WAV 3 detik silence PCM 8-bit 8kHz mono via ArrayBuffer
+  // (bukan base64 kosong — Chrome HARUS bisa decode audio-nya)
+  try {
+    const sampleRate = 8000, seconds = 3;
+    const numSamples = sampleRate * seconds;
+    const buf = new ArrayBuffer(44 + numSamples);
+    const v = new DataView(buf);
+    const wr = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+    wr(0, 'RIFF'); v.setUint32(4, 36 + numSamples, true);
+    wr(8, 'WAVE'); wr(12, 'fmt '); v.setUint32(16, 16, true);
+    v.setUint16(20, 1, true);   // PCM
+    v.setUint16(22, 1, true);   // mono
+    v.setUint32(24, sampleRate, true);
+    v.setUint32(28, sampleRate, true); // byteRate = sampleRate * 1ch * 1byte
+    v.setUint16(32, 1, true);   // blockAlign
+    v.setUint16(34, 8, true);   // bitsPerSample
+    wr(36, 'data'); v.setUint32(40, numSamples, true);
+    for (let i = 0; i < numSamples; i++) v.setUint8(44 + i, 128); // 128 = silence (unsigned 8-bit)
+    const blob = new Blob([buf], { type: 'audio/wav' });
+    return URL.createObjectURL(blob);
+  } catch(e) { return null; }
 }
 
-// Buat WAV 1 detik berisi silence murni (1 channel, 8000Hz, 8-bit)
-// Ukuran data = 8000 byte → browser mengenali sebagai audio valid (bukan kosong)
-function _buildSilentWav() {
-  const sampleRate = 8000, numSamples = 8000;
-  const buf = new ArrayBuffer(44 + numSamples);
-  const v = new DataView(buf);
-  const str = (o,s) => { for(let i=0;i<s.length;i++) v.setUint8(o+i,s.charCodeAt(i)); };
-  str(0,'RIFF'); v.setUint32(4,36+numSamples,true);
-  str(8,'WAVE'); str(12,'fmt '); v.setUint32(16,16,true);
-  v.setUint16(20,1,true); v.setUint16(22,1,true);
-  v.setUint32(24,sampleRate,true); v.setUint32(28,sampleRate,true);
-  v.setUint16(32,1,true); v.setUint16(34,8,true);
-  str(36,'data'); v.setUint32(40,numSamples,true);
-  // isi dengan 128 (silence untuk 8-bit unsigned PCM)
-  for(let i=0;i<numSamples;i++) v.setUint8(44+i,128);
-  const blob = new Blob([buf],{type:'audio/wav'});
-  return URL.createObjectURL(blob);
+function _ensureSilentAudio() {
+  if (!_msAudio) _msAudio = document.getElementById('ms-audio');
+  if (!_silentBlobUrl) _silentBlobUrl = _makeSilentBlobUrl();
+  if (_silentBlobUrl && _msAudio.src !== _silentBlobUrl) {
+    _msAudio.src = _silentBlobUrl;
+    _msAudio.volume = 0.001;
+    _msAudio.loop = true;
+  }
+  if (_msAudio.paused) _msAudio.play().catch(() => {});
 }
 
 function _claimMediaSession(track) {
   if (!('mediaSession' in navigator)) return;
 
-  // 1. Mulai/lanjutkan audio senyap agar halaman ini "punya" audio aktif
-  if (!_msAudio) {
-    _msAudio = document.getElementById('ms-audio');
-    _msAudio.src = _buildSilentWav();
-    _msAudio.volume = 0.001;
-    _msAudio.loop = true;
-  }
-  // Play audio senyap (perlu interaksi user — sudah ada karena user klik lagu)
-  _msAudio.play().catch(()=>{});
+  // 1. Mulai audio senyap NYATA agar Chrome mengakui halaman ini punya audio aktif
+  _ensureSilentAudio();
 
   // 2. Set metadata (nama lagu, artis, cover art)
   const artworkList = [];
@@ -2823,12 +2821,8 @@ function _claimMediaSession(track) {
 
 function _updateMediaSessionState(state) {
   if (!('mediaSession' in navigator)) return;
-  navigator.mediaSession.playbackState = state; // 'playing' | 'paused' | 'none'
-  if (state === 'playing') {
-    // Pastikan silent audio jalan agar halaman tetap "punya" kontrol Media Session
-    if (_msAudio && _msAudio.paused) _msAudio.play().catch(()=>{});
-    if (_audioCtx && _audioCtx.state === 'suspended') _audioCtx.resume().catch(()=>{});
-  }
+  navigator.mediaSession.playbackState = state;
+  if (state === 'playing') _ensureSilentAudio();
   // Update posisi agar progress bar di notif sinkron
   if (state === 'playing' && YTP && tot > 0) {
     try {
@@ -2895,8 +2889,8 @@ async function loadPlayBg(track, fromPlId) {
     navigator.mediaSession.playbackState = 'playing';
   }
 
-  // Pastikan audio senyap tetap jalan (jangan sampai hilang kepemilikan)
-  if (_msAudio && _msAudio.paused) _msAudio.play().catch(()=>{});
+  // Pastikan audio senyap tetap jalan (jangan sampai hilang kepemilikan Media Session)
+  _ensureSilentAudio();
 
   toast('⏭ ' + track.title);
 
@@ -2958,89 +2952,99 @@ async function loadPlayBg(track, fromPlId) {
   } catch(e) {}
 }
 // ─────────────────────────────────────────────────────────────
-// Masalah: browser membekukan setInterval/setTimeout saat tab tidak aktif.
-// Solusi: gunakan AudioContext (tidak dibekukan) sebagai heartbeat + 
-//         lacak waktu dengan Date.now() agar tahu kapan lagu selesai
-//         meskipun JS dibekukan.
+// ─── Background Timer: Service Worker sebagai pengganti setInterval ─────
+// setInterval/setTimeout DIBEKUKAN Chrome saat tab tidak aktif.
+// Service Worker berjalan di thread terpisah → TIDAK dibekukan.
+// Kita kirim pesan ke SW untuk dijadwalkan, SW balas lewat postMessage.
+//
+// Fallback: Date.now() wall-clock (tidak dibekukan) untuk estimasi posisi.
 
-let _bgPoller = null;
-let _audioCtx = null;
-let _silentNode = null;
-let _trackStartWallTime = 0;   // Date.now() saat lagu mulai/resume
-let _trackStartOffset = 0;     // posisi lagu saat itu (detik)
-let _trackDuration = 0;        // durasi total lagu (detik)
-let _nextScheduled = false;    // sudah di-schedule belum
+let _trackStartWallTime = 0;
+let _trackStartOffset   = 0;
+let _trackDuration      = 0;
+let _nextScheduled      = false;
+let _bgPoller           = null; // fallback setInterval (jalan saat tab aktif)
 
-// Buat AudioContext senyap agar browser tidak suspend JS kita
-function _keepAudioContextAlive() {
+// ── SW Timer ──────────────────────────────────────────────────────────
+let _swReady = false;
+let _swTimerId = null;
+
+// Dengarkan pesan dari SW
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', (e) => {
+    if (e.data && e.data.type === 'BG_TICK') _bgTick();
+    if (e.data && e.data.type === 'SW_READY') _swReady = true;
+  });
+}
+
+function _swSend(msg) {
   try {
-    if (!_audioCtx) {
-      _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (_audioCtx.state === 'suspended') _audioCtx.resume().catch(()=>{});
-    // Buat oscillator hanya sekali, tidak perlu recreate setiap tick
-    if (!_silentNode) {
-      const osc = _audioCtx.createOscillator();
-      const gain = _audioCtx.createGain();
-      gain.gain.value = 0.0001;
-      osc.connect(gain);
-      gain.connect(_audioCtx.destination);
-      osc.start();
-      _silentNode = osc;
+    if (navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage(msg);
+      return true;
     }
   } catch(e) {}
+  return false;
 }
 
-function _stopSilentAudio() {
-  try { if (_silentNode) { _silentNode.stop(); _silentNode = null; } } catch(e){}
+function _startSwTimer(intervalMs) {
+  _swSend({ type: 'START_TIMER', interval: intervalMs, id: 'bg' });
 }
 
-// Catat waktu mulai lagu agar bisa hitung posisi walau JS dibekukan
+function _stopSwTimer() {
+  _swSend({ type: 'STOP_TIMER', id: 'bg' });
+}
+
+// ── Wall-clock tracker ────────────────────────────────────────────────
 function _recordTrackStart(offsetSec, durationSec) {
   _trackStartWallTime = Date.now();
-  _trackStartOffset = offsetSec || 0;
-  _trackDuration = durationSec || 0;
-  _nextScheduled = false;
+  _trackStartOffset   = offsetSec  || 0;
+  _trackDuration      = durationSec || 0;
+  _nextScheduled      = false;
 }
 
-// Hitung posisi lagu berdasarkan waktu nyata (Date.now tidak dibekukan)
 function _estimatedPosition() {
   if (!_trackStartWallTime) return 0;
   return _trackStartOffset + (Date.now() - _trackStartWallTime) / 1000;
 }
 
+// ── Poller start/stop ─────────────────────────────────────────────────
 function startBgPoller() {
   stopBgPoller();
-  _keepAudioContextAlive();
-  _bgPoller = setInterval(_bgTick, 500);
+  // Coba pakai SW timer dulu (tidak dibekukan)
+  if (!_startSwTimer(800)) {
+    // Fallback ke setInterval biasa (hanya andal saat tab aktif)
+    _bgPoller = setInterval(_bgTick, 800);
+  }
 }
 
 function stopBgPoller() {
+  _stopSwTimer();
   if (_bgPoller) { clearInterval(_bgPoller); _bgPoller = null; }
-  _stopSilentAudio();
   _trackStartWallTime = 0;
   _nextScheduled = false;
 }
 
+// ── Tick logic ────────────────────────────────────────────────────────
 function _bgTick() {
   if (!playing) return;
 
-  // --- Cek via YT player state langsung (kalau JS tidak dibekukan) ---
+  // Pastikan silent audio tetap jalan (jangan sampai kehilangan Media Session)
+  _ensureSilentAudio();
+
+  // Cek YT player state langsung (bisa dilakukan walau tab tidak aktif)
   if (YTP) {
     try {
       const state = YTP.getPlayerState();
-      if (state === YT.PlayerState.ENDED) {
-        _triggerNext(); return;
-      }
+      if (state === YT.PlayerState.ENDED) { _triggerNext(); return; }
       if (state === YT.PlayerState.PLAYING) {
         const curT = YTP.getCurrentTime() || 0;
-        const durT = YTP.getDuration() || 0;
+        const durT = YTP.getDuration()    || 0;
         if (durT > 0) {
-          // Perbarui referensi waktu nyata setiap kali bisa baca
-          _recordTrackStart(curT, durT);
-          if (durT - curT < 1.0 && !_nextScheduled) {
+          _recordTrackStart(curT, durT); // selalu perbarui referensi waktu
+          if (durT - curT < 1.2 && !_nextScheduled) {
             _nextScheduled = true;
-            setTimeout(_triggerNext, Math.max(0, (durT - curT) * 1000));
+            setTimeout(_triggerNext, Math.max(100, (durT - curT) * 1000));
           }
           return;
         }
@@ -3048,8 +3052,7 @@ function _bgTick() {
     } catch(e) {}
   }
 
-  // --- Fallback: estimasi berdasarkan Date.now() ---
-  // (dipakai saat JS dibekukan dan YTP tidak bisa dipanggil)
+  // Fallback wall-clock: pakai Date.now() yang tidak dibekukan browser
   if (_trackDuration > 0 && _trackStartWallTime > 0) {
     const est = _estimatedPosition();
     if (est >= _trackDuration - 0.5 && !_nextScheduled) {
@@ -3063,42 +3066,32 @@ function _triggerNext() {
   if (!playing) return;
   stopBgPoller();
   playing = false;
-  try { setPB(false); } catch(e){}
+  try { setPB(false); } catch(e) {}
   cancelAnimationFrame(raf);
-  // Gunakan _bgPlayNext agar aman dipanggil dari background
   _bgPlayNext();
 }
 
-// Saat kembali ke tab: cek apakah lagu sudah/hampir selesai
-function _onTabVisible() {
-  // Resume AudioContext jika suspended
-  if (_audioCtx && _audioCtx.state === 'suspended') _audioCtx.resume().catch(()=>{});
-  // Pastikan silent audio tetap jalan (kunci kepemilikan Media Session)
-  if (_msAudio && _msAudio.paused && playing) _msAudio.play().catch(()=>{});
+// ── Saat kembali ke tab ───────────────────────────────────────────────
+function _onTabResume() {
+  _ensureSilentAudio();
   if (!YTP || !playing) return;
   try {
     const state = YTP.getPlayerState();
-    if (state === YT.PlayerState.ENDED) {
-      _triggerNext(); return;
-    }
-    // Cek estimasi waktu (fallback kalau YT tidak update)
+    if (state === YT.PlayerState.ENDED) { _triggerNext(); return; }
     if (_trackDuration > 0) {
       const est = _estimatedPosition();
-      if (est >= _trackDuration - 1.5) {
-        _triggerNext(); return;
-      }
+      if (est >= _trackDuration - 1.5) { _triggerNext(); return; }
     }
-    // Lagu harusnya main tapi tidak → resume
     if (state !== YT.PlayerState.PLAYING) {
-      try { YTP.playVideo(); } catch(e){}
+      try { YTP.playVideo(); } catch(e) {}
     }
   } catch(e) {}
 }
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') _onTabVisible();
+  if (document.visibilityState === 'visible') _onTabResume();
 });
-window.addEventListener('pageshow', () => { _onTabVisible(); });
-window.addEventListener('focus', () => { _onTabVisible(); });
+window.addEventListener('pageshow', () => _onTabResume());
+window.addEventListener('focus',    () => _onTabResume());
 
 function setPB(p){
   document.getElementById('ico-play').style.display=p?'none':'block';
@@ -5252,7 +5245,21 @@ showApp = function(user) {
 };
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').catch(console.error);
+  navigator.serviceWorker.register('./sw.js').then(reg => {
+    // Kirim pesan SW_READY saat controller siap
+    const tryActivate = () => {
+      if (navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'SW_READY' });
+        _swReady = true;
+      }
+    };
+    if (reg.active) tryActivate();
+    reg.addEventListener('updatefound', () => {
+      const sw = reg.installing;
+      if (sw) sw.addEventListener('statechange', () => { if (sw.state === 'activated') tryActivate(); });
+    });
+    navigator.serviceWorker.addEventListener('controllerchange', tryActivate);
+  }).catch(console.error);
 }
 </script>
 </body>
