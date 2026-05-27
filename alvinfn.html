@@ -2748,13 +2748,32 @@ function _getSilentSrc() {
   }, 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
 }
 
+// Buat WAV 1 detik berisi silence murni (1 channel, 8000Hz, 8-bit)
+// Ukuran data = 8000 byte → browser mengenali sebagai audio valid (bukan kosong)
+function _buildSilentWav() {
+  const sampleRate = 8000, numSamples = 8000;
+  const buf = new ArrayBuffer(44 + numSamples);
+  const v = new DataView(buf);
+  const str = (o,s) => { for(let i=0;i<s.length;i++) v.setUint8(o+i,s.charCodeAt(i)); };
+  str(0,'RIFF'); v.setUint32(4,36+numSamples,true);
+  str(8,'WAVE'); str(12,'fmt '); v.setUint32(16,16,true);
+  v.setUint16(20,1,true); v.setUint16(22,1,true);
+  v.setUint32(24,sampleRate,true); v.setUint32(28,sampleRate,true);
+  v.setUint16(32,1,true); v.setUint16(34,8,true);
+  str(36,'data'); v.setUint32(40,numSamples,true);
+  // isi dengan 128 (silence untuk 8-bit unsigned PCM)
+  for(let i=0;i<numSamples;i++) v.setUint8(44+i,128);
+  const blob = new Blob([buf],{type:'audio/wav'});
+  return URL.createObjectURL(blob);
+}
+
 function _claimMediaSession(track) {
   if (!('mediaSession' in navigator)) return;
 
   // 1. Mulai/lanjutkan audio senyap agar halaman ini "punya" audio aktif
   if (!_msAudio) {
     _msAudio = document.getElementById('ms-audio');
-    _msAudio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+    _msAudio.src = _buildSilentWav();
     _msAudio.volume = 0.001;
     _msAudio.loop = true;
   }
@@ -2805,7 +2824,11 @@ function _claimMediaSession(track) {
 function _updateMediaSessionState(state) {
   if (!('mediaSession' in navigator)) return;
   navigator.mediaSession.playbackState = state; // 'playing' | 'paused' | 'none'
-  if (state === 'playing' && _msAudio && _msAudio.paused) _msAudio.play().catch(()=>{});
+  if (state === 'playing') {
+    // Pastikan silent audio jalan agar halaman tetap "punya" kontrol Media Session
+    if (_msAudio && _msAudio.paused) _msAudio.play().catch(()=>{});
+    if (_audioCtx && _audioCtx.state === 'suspended') _audioCtx.resume().catch(()=>{});
+  }
   // Update posisi agar progress bar di notif sinkron
   if (state === 'playing' && YTP && tot > 0) {
     try {
@@ -2955,15 +2978,16 @@ function _keepAudioContextAlive() {
       _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
     if (_audioCtx.state === 'suspended') _audioCtx.resume().catch(()=>{});
-    // Oscillator senyap (gain 0) — cukup untuk mencegah throttle
-    if (_silentNode) { try { _silentNode.stop(); } catch(e){} _silentNode = null; }
-    const osc = _audioCtx.createOscillator();
-    const gain = _audioCtx.createGain();
-    gain.gain.value = 0.001; // nyaris 0, tidak terdengar
-    osc.connect(gain);
-    gain.connect(_audioCtx.destination);
-    osc.start();
-    _silentNode = osc;
+    // Buat oscillator hanya sekali, tidak perlu recreate setiap tick
+    if (!_silentNode) {
+      const osc = _audioCtx.createOscillator();
+      const gain = _audioCtx.createGain();
+      gain.gain.value = 0.0001;
+      osc.connect(gain);
+      gain.connect(_audioCtx.destination);
+      osc.start();
+      _silentNode = osc;
+    }
   } catch(e) {}
 }
 
@@ -2988,7 +3012,7 @@ function _estimatedPosition() {
 function startBgPoller() {
   stopBgPoller();
   _keepAudioContextAlive();
-  _bgPoller = setInterval(_bgTick, 800);
+  _bgPoller = setInterval(_bgTick, 500);
 }
 
 function stopBgPoller() {
@@ -3046,10 +3070,11 @@ function _triggerNext() {
 }
 
 // Saat kembali ke tab: cek apakah lagu sudah/hampir selesai
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState !== 'visible') return;
+function _onTabVisible() {
   // Resume AudioContext jika suspended
   if (_audioCtx && _audioCtx.state === 'suspended') _audioCtx.resume().catch(()=>{});
+  // Pastikan silent audio tetap jalan (kunci kepemilikan Media Session)
+  if (_msAudio && _msAudio.paused && playing) _msAudio.play().catch(()=>{});
   if (!YTP || !playing) return;
   try {
     const state = YTP.getPlayerState();
@@ -3068,7 +3093,12 @@ document.addEventListener('visibilitychange', () => {
       try { YTP.playVideo(); } catch(e){}
     }
   } catch(e) {}
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') _onTabVisible();
 });
+window.addEventListener('pageshow', () => { _onTabVisible(); });
+window.addEventListener('focus', () => { _onTabVisible(); });
 
 function setPB(p){
   document.getElementById('ico-play').style.display=p?'none':'block';
