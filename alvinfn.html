@@ -1737,6 +1737,9 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
   <div id="yt-player"></div>
 </div>
 
+
+<!-- Audio senyap: agar halaman ini "memiliki" Media Session, bukan iframe YouTube -->
+<audio id="ms-audio" loop style="display:none"></audio>
 <!-- Cover Photo Modal -->
 <div id="ph-modal" class="modal-bg" style="display:none">
   <div class="modal">
@@ -2699,25 +2702,15 @@ function _createPlayer(videoId) {
           tot=YTP.getDuration(); tick();
           _recordTrackStart(YTP.getCurrentTime()||0, tot||0);
           startBgPoller();
-          // Update posisi di notifikasi OS
-          if('mediaSession' in navigator){
-            navigator.mediaSession.playbackState = 'playing';
-            try {
-              navigator.mediaSession.setPositionState({
-                duration: tot||0,
-                playbackRate: 1,
-                position: YTP.getCurrentTime()||0
-              });
-            } catch(e){}
-          }
+          _updateMediaSessionState('playing');
         }
         else if(e.data===YT.PlayerState.PAUSED){
           playing=false; setPB(false); cancelAnimationFrame(raf); stopBgPoller();
-          if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+          _updateMediaSessionState('paused');
         }
         else if(e.data===YT.PlayerState.ENDED){
           playing=false; setPB(false); cancelAnimationFrame(raf); stopBgPoller(); playNext();
-          if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';
+          _updateMediaSessionState('none');
         }
       },
       onError(e){ if(e.data===101||e.data===150) toast('⚠️ Video diblokir, coba lagu lain'); }
@@ -2734,7 +2727,95 @@ function initPlayer(videoId) {
   });
 }
 
-// ─── Background Playback Engine ──────────────────────────
+// ─── Media Session: Klaim kepemilikan dari iframe YouTube ────
+// Chrome hanya memberikan kontrol notif OS ke sumber audio yang
+// benar-benar diputar di halaman (bukan iframe). Kita putar audio
+// senyap dari halaman ini agar tombol prev/next/play aktif.
+
+let _msAudio = null;
+
+function _getSilentSrc() {
+  // Audio WAV 1 detik senyap dalam base64 (44100Hz, 16-bit, stereo, ~88KB → dikompres)
+  // Menggunakan audio pendek yang di-loop agar terus "aktif"
+  return (function(){
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const buf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(ctx.destination);
+    ctx.close();
+  }, 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
+}
+
+function _claimMediaSession(track) {
+  if (!('mediaSession' in navigator)) return;
+
+  // 1. Mulai/lanjutkan audio senyap agar halaman ini "punya" audio aktif
+  if (!_msAudio) {
+    _msAudio = document.getElementById('ms-audio');
+    _msAudio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+    _msAudio.volume = 0.001;
+    _msAudio.loop = true;
+  }
+  // Play audio senyap (perlu interaksi user — sudah ada karena user klik lagu)
+  _msAudio.play().catch(()=>{});
+
+  // 2. Set metadata (nama lagu, artis, cover art)
+  const artworkList = [];
+  if (track.thumb) {
+    artworkList.push({ src: track.thumb, sizes: '512x512', type: 'image/jpeg' });
+    artworkList.push({ src: track.thumb, sizes: '128x128', type: 'image/jpeg' });
+  }
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title:  track.title  || 'Unknown',
+    artist: track.artist || 'Unknown',
+    album:  'ALVINVN Music',
+    artwork: artworkList
+  });
+
+  // 3. Daftarkan handler — INI yang mengaktifkan tombol di notif OS
+  navigator.mediaSession.setActionHandler('play', () => {
+    try { if (YTP) YTP.playVideo(); } catch(e){}
+    if (_msAudio) _msAudio.play().catch(()=>{});
+    playing = true; setPB(true);
+    navigator.mediaSession.playbackState = 'playing';
+  });
+  navigator.mediaSession.setActionHandler('pause', () => {
+    try { if (YTP) YTP.pauseVideo(); } catch(e){}
+    playing = false; setPB(false);
+    navigator.mediaSession.playbackState = 'paused';
+  });
+  navigator.mediaSession.setActionHandler('previoustrack', () => { playPrev(); });
+  navigator.mediaSession.setActionHandler('nexttrack',     () => { playNext(); });
+  navigator.mediaSession.setActionHandler('stop', () => {
+    try { if (YTP) YTP.stopVideo(); } catch(e){}
+    if (_msAudio) { _msAudio.pause(); _msAudio.currentTime = 0; }
+    playing = false; setPB(false);
+    navigator.mediaSession.playbackState = 'none';
+  });
+  navigator.mediaSession.setActionHandler('seekto', (d) => {
+    try { if (YTP && d.seekTime != null) YTP.seekTo(d.seekTime, true); } catch(e){}
+  });
+
+  navigator.mediaSession.playbackState = 'playing';
+}
+
+function _updateMediaSessionState(state) {
+  if (!('mediaSession' in navigator)) return;
+  navigator.mediaSession.playbackState = state; // 'playing' | 'paused' | 'none'
+  if (state === 'playing' && _msAudio && _msAudio.paused) _msAudio.play().catch(()=>{});
+  // Update posisi agar progress bar di notif sinkron
+  if (state === 'playing' && YTP && tot > 0) {
+    try {
+      navigator.mediaSession.setPositionState({
+        duration: tot,
+        playbackRate: 1,
+        position: Math.min(cur, tot)
+      });
+    } catch(e){}
+  }
+}
+// ─────────────────────────────────────────────────────────────
 // Masalah: browser membekukan setInterval/setTimeout saat tab tidak aktif.
 // Solusi: gunakan AudioContext (tidak dibekukan) sebagai heartbeat + 
 //         lacak waktu dengan Date.now() agar tahu kapan lagu selesai
@@ -2980,47 +3061,9 @@ async function loadPlay(track, fromPlId){
   document.getElementById('bar-artist').textContent=track.artist;
 
   // ─── Media Session API ────────────────────────────────────
-  // Agar tombol di notifikasi OS (prev/play/pause/next) bisa berfungsi
-  if ('mediaSession' in navigator) {
-    // Artwork: coba dari thumb track, fallback ke placeholder
-    const artworkList = [];
-    if (track.thumb) {
-      artworkList.push({ src: track.thumb, sizes: '512x512', type: 'image/jpeg' });
-      artworkList.push({ src: track.thumb, sizes: '256x256', type: 'image/jpeg' });
-      artworkList.push({ src: track.thumb, sizes: '128x128', type: 'image/jpeg' });
-    }
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: track.title || 'Unknown',
-      artist: track.artist || 'Unknown',
-      album: 'ALVINVN Music',
-      artwork: artworkList
-    });
-
-    // Daftarkan action handler — ini yang membuat tombol di notif OS aktif
-    navigator.mediaSession.setActionHandler('play', () => {
-      try { if (YTP) YTP.playVideo(); } catch(e){}
-      playing = true; setPB(true);
-      navigator.mediaSession.playbackState = 'playing';
-    });
-    navigator.mediaSession.setActionHandler('pause', () => {
-      try { if (YTP) YTP.pauseVideo(); } catch(e){}
-      playing = false; setPB(false);
-      navigator.mediaSession.playbackState = 'paused';
-    });
-    navigator.mediaSession.setActionHandler('previoustrack', () => { playPrev(); });
-    navigator.mediaSession.setActionHandler('nexttrack', () => { playNext(); });
-    navigator.mediaSession.setActionHandler('stop', () => {
-      try { if (YTP) YTP.stopVideo(); } catch(e){}
-      playing = false; setPB(false);
-      navigator.mediaSession.playbackState = 'none';
-    });
-    // seekto opsional — aktifkan jika YTP tersedia
-    navigator.mediaSession.setActionHandler('seekto', (details) => {
-      try { if (YTP && details.seekTime != null) YTP.seekTo(details.seekTime, true); } catch(e){}
-    });
-
-    navigator.mediaSession.playbackState = 'playing';
-  }
+  // KUNCI: putar audio senyap dari halaman ini dulu agar Chrome
+  // menyerahkan kontrol Media Session ke kita, bukan ke iframe YT.
+  _claimMediaSession(track);
   // ─────────────────────────────────────────────────────────
 
   // Lyrics panel reset
