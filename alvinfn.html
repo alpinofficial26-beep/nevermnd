@@ -2694,8 +2694,14 @@ function _createPlayer(videoId) {
     events:{
       onReady(e){ e.target.setVolume(parseInt(document.getElementById('vol').value)); e.target.playVideo(); },
       onStateChange(e){
-        if(e.data===YT.PlayerState.PLAYING){ playing=true; setPB(true); tot=YTP.getDuration(); tick(); startBgPoller(); }
-        else if(e.data===YT.PlayerState.PAUSED){ playing=false; setPB(false); cancelAnimationFrame(raf); }
+        if(e.data===YT.PlayerState.PLAYING){
+          playing=true; setPB(true);
+          tot=YTP.getDuration(); tick();
+          // Catat posisi & durasi untuk pelacakan background
+          _recordTrackStart(YTP.getCurrentTime()||0, tot||0);
+          startBgPoller();
+        }
+        else if(e.data===YT.PlayerState.PAUSED){ playing=false; setPB(false); cancelAnimationFrame(raf); stopBgPoller(); }
         else if(e.data===YT.PlayerState.ENDED){ playing=false; setPB(false); cancelAnimationFrame(raf); stopBgPoller(); playNext(); }
       },
       onError(e){ if(e.data===101||e.data===150) toast('⚠️ Video diblokir, coba lagu lain'); }
@@ -2712,72 +2718,139 @@ function initPlayer(videoId) {
   });
 }
 
-// ─── Background Tab Autoplay Fix ─────────────────────────
+// ─── Background Playback Engine ──────────────────────────
+// Masalah: browser membekukan setInterval/setTimeout saat tab tidak aktif.
+// Solusi: gunakan AudioContext (tidak dibekukan) sebagai heartbeat + 
+//         lacak waktu dengan Date.now() agar tahu kapan lagu selesai
+//         meskipun JS dibekukan.
+
 let _bgPoller = null;
-let _bgPollerLastTime = -1;
-let _bgPollerStuckCount = 0;
+let _audioCtx = null;
+let _silentNode = null;
+let _trackStartWallTime = 0;   // Date.now() saat lagu mulai/resume
+let _trackStartOffset = 0;     // posisi lagu saat itu (detik)
+let _trackDuration = 0;        // durasi total lagu (detik)
+let _nextScheduled = false;    // sudah di-schedule belum
+
+// Buat AudioContext senyap agar browser tidak suspend JS kita
+function _keepAudioContextAlive() {
+  try {
+    if (!_audioCtx) {
+      _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (_audioCtx.state === 'suspended') _audioCtx.resume().catch(()=>{});
+    // Oscillator senyap (gain 0) — cukup untuk mencegah throttle
+    if (_silentNode) { try { _silentNode.stop(); } catch(e){} _silentNode = null; }
+    const osc = _audioCtx.createOscillator();
+    const gain = _audioCtx.createGain();
+    gain.gain.value = 0.001; // nyaris 0, tidak terdengar
+    osc.connect(gain);
+    gain.connect(_audioCtx.destination);
+    osc.start();
+    _silentNode = osc;
+  } catch(e) {}
+}
+
+function _stopSilentAudio() {
+  try { if (_silentNode) { _silentNode.stop(); _silentNode = null; } } catch(e){}
+}
+
+// Catat waktu mulai lagu agar bisa hitung posisi walau JS dibekukan
+function _recordTrackStart(offsetSec, durationSec) {
+  _trackStartWallTime = Date.now();
+  _trackStartOffset = offsetSec || 0;
+  _trackDuration = durationSec || 0;
+  _nextScheduled = false;
+}
+
+// Hitung posisi lagu berdasarkan waktu nyata (Date.now tidak dibekukan)
+function _estimatedPosition() {
+  if (!_trackStartWallTime) return 0;
+  return _trackStartOffset + (Date.now() - _trackStartWallTime) / 1000;
+}
 
 function startBgPoller() {
   stopBgPoller();
-  _bgPollerLastTime = -1;
-  _bgPollerStuckCount = 0;
-  _bgPoller = setInterval(() => {
-    if (!YTP || !playing) return;
-    try {
-      const state = YTP.getPlayerState();
-      // State 0 = ENDED
-      if (state === 0) {
-        stopBgPoller();
-        playing = false; setPB(false); cancelAnimationFrame(raf);
-        playNext();
-        return;
-      }
-      const curT = YTP.getCurrentTime() || 0;
-      const durT = YTP.getDuration() || 0;
-      // Hampir habis (< 1.5 detik sisa)
-      if (durT > 0 && curT > 0 && (durT - curT) < 1.5) {
-        if (_bgPollerStuckCount++ >= 2) {
-          stopBgPoller();
-          playing = false; setPB(false); cancelAnimationFrame(raf);
-          playNext();
-          return;
-        }
-      }
-      // Progress berhenti (tab background membekukan video)
-      if (_bgPollerLastTime === curT && curT > 0 && state === 1) {
-        _bgPollerStuckCount++;
-        if (_bgPollerStuckCount >= 5) {
-          try { YTP.playVideo(); } catch(e){}
-          _bgPollerStuckCount = 0;
-        }
-      } else {
-        _bgPollerStuckCount = 0;
-      }
-      _bgPollerLastTime = curT;
-    } catch(e) {}
-  }, 1000);
+  _keepAudioContextAlive();
+  _bgPoller = setInterval(_bgTick, 800);
 }
 
 function stopBgPoller() {
   if (_bgPoller) { clearInterval(_bgPoller); _bgPoller = null; }
+  _stopSilentAudio();
+  _trackStartWallTime = 0;
+  _nextScheduled = false;
 }
 
-// Saat tab kembali aktif, pastikan lagu tetap berjalan atau lanjut ke berikutnya
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && YTP) {
+function _bgTick() {
+  if (!playing) return;
+
+  // --- Cek via YT player state langsung (kalau JS tidak dibekukan) ---
+  if (YTP) {
     try {
       const state = YTP.getPlayerState();
-      if (state === 0 && playing) {
-        // Lagu selesai saat di background, lanjut ke berikutnya
-        playing = false; setPB(false); cancelAnimationFrame(raf);
-        stopBgPoller();
-        playNext();
-      } else if (playing && state !== 1) {
-        // Sedang harusnya bermain tapi terhenti
-        try { YTP.playVideo(); } catch(e){}
+      if (state === YT.PlayerState.ENDED) {
+        _triggerNext(); return;
+      }
+      if (state === YT.PlayerState.PLAYING) {
+        const curT = YTP.getCurrentTime() || 0;
+        const durT = YTP.getDuration() || 0;
+        if (durT > 0) {
+          // Perbarui referensi waktu nyata setiap kali bisa baca
+          _recordTrackStart(curT, durT);
+          if (durT - curT < 1.0 && !_nextScheduled) {
+            _nextScheduled = true;
+            setTimeout(_triggerNext, Math.max(0, (durT - curT) * 1000));
+          }
+          return;
+        }
       }
     } catch(e) {}
   }
+
+  // --- Fallback: estimasi berdasarkan Date.now() ---
+  // (dipakai saat JS dibekukan dan YTP tidak bisa dipanggil)
+  if (_trackDuration > 0 && _trackStartWallTime > 0) {
+    const est = _estimatedPosition();
+    if (est >= _trackDuration - 0.5 && !_nextScheduled) {
+      _nextScheduled = true;
+      _triggerNext();
+    }
+  }
+}
+
+function _triggerNext() {
+  if (!playing) return;
+  stopBgPoller();
+  playing = false;
+  try { setPB(false); } catch(e){}
+  cancelAnimationFrame(raf);
+  playNext();
+}
+
+// Saat kembali ke tab: cek apakah lagu sudah/hampir selesai
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  // Resume AudioContext jika suspended
+  if (_audioCtx && _audioCtx.state === 'suspended') _audioCtx.resume().catch(()=>{});
+  if (!YTP || !playing) return;
+  try {
+    const state = YTP.getPlayerState();
+    if (state === YT.PlayerState.ENDED) {
+      _triggerNext(); return;
+    }
+    // Cek estimasi waktu (fallback kalau YT tidak update)
+    if (_trackDuration > 0) {
+      const est = _estimatedPosition();
+      if (est >= _trackDuration - 1.5) {
+        _triggerNext(); return;
+      }
+    }
+    // Lagu harusnya main tapi tidak → resume
+    if (state !== YT.PlayerState.PLAYING) {
+      try { YTP.playVideo(); } catch(e){}
+    }
+  } catch(e) {}
 });
 
 function setPB(p){
