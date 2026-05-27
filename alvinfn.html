@@ -4,15 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ALVINVN — Music Player</title>
-<!-- PWA -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#156dee">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="NVM">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -209,16 +200,27 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
 .pv-empty{text-align:center;padding:50px 20px;color:var(--muted);font-size:.83rem;line-height:1.8;}
 .pv-empty-icon{font-size:2.5rem;margin-bottom:12px;}
 
-/* ── OWNER PROFILE CARD (di playlist publik) ── */
-.pv-owner-card{display:flex;align-items:center;gap:14px;margin:0 24px 16px;padding:14px 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;transition:all .2s;text-decoration:none;}
-.pv-owner-card:hover{background:var(--hover);border-color:rgba(29,107,219,.4);transform:translateY(-1px);}
-.pv-owner-avatar{width:44px;height:44px;border-radius:50%;object-fit:cover;background:var(--hover);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.2rem;border:2px solid var(--border);}
-.pv-owner-avatar img{width:44px;height:44px;border-radius:50%;object-fit:cover;}
-.pv-owner-info{flex:1;min-width:0;}
-.pv-owner-label{font-size:.6rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;}
-.pv-owner-name{font-size:.88rem;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.pv-owner-arrow{color:var(--muted);display:flex;align-items:center;flex-shrink:0;}
-.pv-owner-arrow svg{width:16px;height:16px;}
+/* ── DRAG & REORDER ────────────────────────────────────── */
+.reorder-mode .track-row{cursor:grab;user-select:none;}
+.reorder-mode .track-row:active{cursor:grabbing;}
+.track-row.drag-over{background:var(--green-dim);border-top:2px solid var(--green);}
+.track-row.dragging{opacity:.4;background:var(--hover);}
+.tr-drag{opacity:0;background:none;border:none;color:var(--muted);cursor:grab;padding:2px 4px;border-radius:4px;display:flex;align-items:center;flex-shrink:0;transition:all .15s;}
+.track-row:hover .tr-drag{opacity:1;}
+.tr-drag:hover{color:var(--text);}
+.tr-drag svg{width:14px;height:14px;}
+.reorder-mode .tr-drag{opacity:1;color:var(--green);}
+.reorder-mode .tr-del{display:none;}
+.reorder-mode .track-row{border-left:2px solid transparent;transition:border-color .15s,background .15s;}
+.reorder-mode .track-row:hover{border-left-color:var(--green);}
+.pv-reorder-btn{background:none;border:1px solid var(--border);border-radius:50px;padding:6px 16px;color:var(--sub);font-family:var(--f);font-size:.78rem;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:6px;}
+.pv-reorder-btn:hover{color:var(--text);border-color:var(--green);}
+.pv-reorder-btn.active{background:var(--green-dim);border-color:var(--green);color:var(--green);}
+.pv-reorder-btn svg{width:14px;height:14px;}
+.reorder-hint{font-size:.7rem;color:var(--muted);padding:4px 8px 10px 8px;display:none;text-align:center;letter-spacing:.5px;}
+.reorder-mode .reorder-hint{display:block;}
+/* Touch drag visual feedback */
+.touch-drag-ghost{position:fixed;pointer-events:none;z-index:9999;opacity:.85;background:var(--hover);border:1px solid var(--green);border-radius:var(--rs);padding:8px 12px;font-size:.8rem;font-family:var(--f);color:var(--text);max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 8px 32px rgba(0,0,0,.5);}
 
 /* ── HOME / PLAYLISTS GRID ────────────────────────────────── */
 #home-view{padding:24px;display:none;}
@@ -254,20 +256,6 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
 .ll.active{color:var(--text);font-size:1.05rem;font-weight:700;text-shadow:0 0 18px rgba(29,107,219,.28)}
 .lyr-empty{text-align:center;padding:50px 18px;color:var(--muted);font-size:.82rem;line-height:1.8}
 .lyr-empty i{display:block;font-size:2.2rem;margin-bottom:10px;font-style:normal}
-
-/* ── INSTRUMENTAL LINES ──────────────────────────── */
-.lyr-instrumental{display:flex;align-items:center;gap:8px;padding:6px 0;}
-.lyr-instrumental .inst-icon{font-size:1rem;opacity:.55;flex-shrink:0;}
-.lyr-instrumental.active .inst-icon{opacity:1;filter:drop-shadow(0 0 6px rgba(29,107,219,.6));}
-.inst-dots{display:flex;align-items:center;gap:5px;}
-.inst-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--muted);transition:background .2s;}
-.lyr-instrumental.active .inst-dot{background:var(--green);animation:instPulse 1.1s ease-in-out infinite;}
-.lyr-instrumental.past .inst-dot{background:var(--muted);}
-@keyframes instPulse{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.4);opacity:1}}
-/* Kinetic instrumental */
-.k-inst-label{font-size:2.2rem;margin-right:10px;filter:drop-shadow(0 0 12px rgba(29,107,219,.5));}
-.k-inst-dot-large{display:inline-block;font-size:1.6rem;opacity:.3;animation:instFade 1.1s ease-in-out infinite;margin:0 4px;}
-@keyframes instFade{0%,100%{opacity:.2;transform:scale(.85)}50%{opacity:1;transform:scale(1.15)}}
 
 /* PLAYER BAR */
 #bar{grid-area:bar;background:rgba(8,11,18,.96);backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 22px;gap:20px;z-index:10}
@@ -327,172 +315,6 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
 .modal-pl-name{font-size:.82rem;font-weight:600;}
 .modal-pl-count{font-size:.7rem;color:var(--sub);}
 
-/* PUBLIC PLAYLISTS FEED */
-.pub-section{margin-top:32px;}
-.pub-section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
-.pub-section-title{font-size:1rem;font-weight:700;display:flex;align-items:center;gap:8px;}
-.pub-badge{background:linear-gradient(135deg,rgba(29,107,219,.25),rgba(61,157,214,.15));border:1px solid rgba(29,107,219,.4);color:var(--teal);font-size:.6rem;font-weight:700;letter-spacing:1.5px;padding:2px 9px;border-radius:50px;text-transform:uppercase;}
-.pub-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;}
-.pub-card{background:var(--card);border-radius:var(--r);padding:13px;cursor:pointer;transition:all .22s;border:1px solid transparent;position:relative;overflow:hidden;}
-.pub-card:hover{background:var(--hover);border-color:var(--border);transform:translateY(-2px);box-shadow:0 10px 30px rgba(0,0,0,.3);}
-.pub-cover-wrap{position:relative;width:100%;margin-bottom:10px;}
-.pub-card-cover{width:100%;aspect-ratio:1;border-radius:8px;background:var(--hover);display:flex;align-items:center;justify-content:center;font-size:2.8rem;}
-.pub-card-img{width:100%;aspect-ratio:1;border-radius:8px;object-fit:cover;display:block;}
-.pub-cover-ov{position:absolute;inset:0;border-radius:8px;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;pointer-events:none;}
-.pub-card:hover .pub-cover-ov{opacity:1;}
-.pub-cover-ov svg{width:38px;height:38px;background:var(--green);border-radius:50%;padding:10px;color:#fff;box-shadow:0 3px 16px rgba(29,107,219,.5);}
-.pub-card-name{font-size:.82rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:7px;}
-.pub-card-bottom{display:flex;align-items:center;justify-content:space-between;gap:6px;}
-.pub-card-owner{font-size:.7rem;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;display:flex;align-items:center;gap:4px;}
-.pub-like-btn{display:flex;align-items:center;gap:3px;background:var(--bg);border:1px solid var(--border);color:var(--sub);font-family:var(--f);font-size:.7rem;cursor:pointer;padding:4px 8px;border-radius:50px;transition:all .18s;flex-shrink:0;white-space:nowrap;}
-.pub-like-btn:hover{color:#ff7eb3;border-color:rgba(255,77,148,.35);background:rgba(255,77,148,.06);}
-.pub-like-btn.liked{color:#ff4d94;border-color:rgba(255,77,148,.45);background:rgba(255,77,148,.1);}
-.pub-like-btn svg{width:12px;height:12px;flex-shrink:0;}
-
-/* TOP RANKING */
-.rank-grid{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
-.rank-item{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:var(--rs);background:var(--card);border:1px solid transparent;cursor:pointer;transition:all .18s;}
-.rank-item:hover{background:var(--hover);border-color:var(--border);}
-.rank-num{font-size:1rem;font-weight:800;font-family:var(--fm);width:28px;text-align:center;flex-shrink:0;}
-.rank-num.gold{color:#FFD700;text-shadow:0 0 10px rgba(255,215,0,.4);}
-.rank-num.silver{color:#C0C0C0;}
-.rank-num.bronze{color:#CD7F32;}
-.rank-cover{width:42px;height:42px;border-radius:7px;background:var(--hover);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;overflow:hidden;}
-.rank-cover img{width:100%;height:100%;object-fit:cover;}
-.rank-info{flex:1;min-width:0;}
-.rank-name{font-size:.82rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.rank-owner{font-size:.71rem;color:var(--sub);}
-.rank-likes{display:flex;align-items:center;gap:4px;font-size:.75rem;color:#ff7eb3;font-weight:700;flex-shrink:0;}
-.rank-likes svg{width:13px;height:13px;}
-
-/* Publish toggle btn */
-.pv-publish-btn{background:none;border:1px solid var(--border);border-radius:50px;padding:6px 16px;color:var(--sub);font-family:var(--f);font-size:.78rem;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:6px;}
-.pv-publish-btn:hover{color:var(--text);border-color:var(--green);}
-.pv-publish-btn.published{background:rgba(29,107,219,.12);border-color:rgba(29,107,219,.5);color:var(--green);}
-.pv-publish-btn svg{width:14px;height:14px;}
-
-/* ── COMMENT SECTION ─────────────────────────────────────── */
-.comment-section{padding:0 24px 32px;}
-.comment-section-title{font-size:.78rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:7px;}
-.comment-section-title svg{width:14px;height:14px;}
-.comment-input-wrap{display:flex;gap:10px;align-items:flex-start;margin-bottom:18px;}
-.comment-avatar-self{width:34px;height:34px;border-radius:50%;background:var(--hover);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.85rem;overflow:hidden;}
-.comment-avatar-self img{width:34px;height:34px;border-radius:50%;object-fit:cover;}
-.comment-box{flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;transition:border-color .2s;}
-.comment-box:focus-within{border-color:rgba(29,107,219,.5);}
-.comment-textarea{background:none;border:none;outline:none;resize:none;font-family:var(--f);font-size:.83rem;color:var(--text);width:100%;min-height:36px;max-height:100px;line-height:1.5;overflow-y:auto;}
-.comment-textarea::placeholder{color:var(--muted);}
-.comment-send-row{display:flex;justify-content:flex-end;}
-.comment-send-btn{background:var(--green);border:none;border-radius:50px;padding:6px 16px;color:#fff;font-family:var(--f);font-weight:700;font-size:.75rem;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:5px;}
-.comment-send-btn:hover{box-shadow:var(--green-glow);transform:translateY(-1px);}
-.comment-send-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
-.comment-send-btn svg{width:13px;height:13px;}
-.comment-list{display:flex;flex-direction:column;gap:12px;}
-.comment-item{display:flex;gap:10px;align-items:flex-start;}
-.comment-avatar{width:32px;height:32px;border-radius:50%;background:var(--hover);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.8rem;overflow:hidden;}
-.comment-avatar img{width:32px;height:32px;border-radius:50%;object-fit:cover;}
-.comment-bubble{flex:1;min-width:0;}
-.comment-meta{display:flex;align-items:baseline;gap:7px;margin-bottom:3px;}
-.comment-name{font-size:.78rem;font-weight:700;color:var(--text);}
-.comment-time{font-size:.66rem;color:var(--muted);}
-.comment-text{font-size:.8rem;color:var(--sub);line-height:1.55;word-break:break-word;}
-.comment-del-btn{background:none;border:none;color:var(--muted);cursor:pointer;padding:2px 4px;border-radius:5px;font-size:.7rem;opacity:0;transition:all .15s;flex-shrink:0;margin-top:1px;}
-.comment-item:hover .comment-del-btn{opacity:1;}
-.comment-del-btn:hover{color:#ff5555;}
-.comment-empty{text-align:center;padding:20px 0;color:var(--muted);font-size:.78rem;line-height:1.7;}
-.comment-empty span{display:block;font-size:1.6rem;margin-bottom:6px;}
-.comment-loading{text-align:center;padding:16px 0;color:var(--muted);font-size:.78rem;}
-
-/* ── LIKE, REPLY, PHOTO COMMENT ─── */
-.comment-actions{display:flex;align-items:center;gap:10px;margin-top:5px;}
-.comment-like-btn{background:none;border:none;color:var(--muted);cursor:pointer;padding:0;font-size:.7rem;font-family:var(--f);font-weight:600;display:flex;align-items:center;gap:3px;transition:all .18s;line-height:1;}
-.comment-like-btn:hover{color:#ff5f7e;}
-.comment-like-btn.liked{color:#ff5f7e;}
-.comment-like-btn svg{width:12px;height:12px;transition:transform .18s;}
-.comment-like-btn:active svg{transform:scale(1.4);}
-.comment-reply-btn{background:none;border:none;color:var(--muted);cursor:pointer;padding:0;font-size:.7rem;font-family:var(--f);font-weight:600;display:flex;align-items:center;gap:3px;transition:color .18s;line-height:1;}
-.comment-reply-btn:hover{color:var(--green);}
-.comment-reply-btn svg{width:11px;height:11px;}
-
-/* Photo in comment */
-.comment-photo-img{max-width:200px;max-height:160px;border-radius:10px;margin-top:7px;object-fit:cover;cursor:pointer;border:1px solid var(--border);display:block;transition:opacity .2s;}
-.comment-photo-img:hover{opacity:.85;}
-
-/* Reply thread */
-.comment-replies{margin-top:8px;padding-left:14px;border-left:2px solid var(--border);display:flex;flex-direction:column;gap:10px;}
-.comment-reply-item{display:flex;gap:8px;align-items:flex-start;}
-.comment-reply-avatar{width:26px;height:26px;border-radius:50%;background:var(--hover);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.65rem;overflow:hidden;}
-.comment-reply-avatar img{width:26px;height:26px;border-radius:50%;object-fit:cover;}
-.comment-reply-bubble{flex:1;min-width:0;}
-.comment-reply-meta{display:flex;align-items:baseline;gap:6px;margin-bottom:2px;}
-.comment-reply-name{font-size:.72rem;font-weight:700;color:var(--text);}
-.comment-reply-time{font-size:.63rem;color:var(--muted);}
-.comment-reply-text{font-size:.77rem;color:var(--sub);line-height:1.5;word-break:break-word;}
-.comment-reply-photo{max-width:160px;max-height:120px;border-radius:8px;margin-top:6px;object-fit:cover;cursor:pointer;border:1px solid var(--border);display:block;}
-.comment-reply-actions{display:flex;gap:8px;margin-top:4px;}
-.comment-reply-del-btn{background:none;border:none;color:var(--muted);cursor:pointer;padding:0 2px;border-radius:4px;font-size:.65rem;opacity:0;transition:all .15s;}
-.comment-reply-item:hover .comment-reply-del-btn{opacity:1;}
-.comment-reply-del-btn:hover{color:#ff5555;}
-
-/* Inline reply input */
-.reply-input-wrap{margin-top:8px;padding-left:14px;border-left:2px solid rgba(29,107,219,.25);display:flex;gap:8px;align-items:flex-start;}
-.reply-avatar-self{width:26px;height:26px;border-radius:50%;background:var(--hover);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.65rem;overflow:hidden;}
-.reply-avatar-self img{width:26px;height:26px;border-radius:50%;object-fit:cover;}
-.reply-box{flex:1;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;transition:border-color .2s;}
-.reply-box:focus-within{border-color:rgba(29,107,219,.5);}
-.reply-textarea{background:none;border:none;outline:none;resize:none;font-family:var(--f);font-size:.78rem;color:var(--text);width:100%;min-height:28px;max-height:80px;line-height:1.5;overflow-y:auto;}
-.reply-textarea::placeholder{color:var(--muted);}
-.reply-bottom-row{display:flex;align-items:center;justify-content:space-between;gap:6px;}
-.reply-photo-btn{background:none;border:none;color:var(--muted);cursor:pointer;padding:2px 5px;border-radius:6px;display:flex;align-items:center;gap:4px;font-family:var(--f);font-size:.68rem;transition:all .18s;}
-.reply-photo-btn:hover{color:var(--green);background:var(--green-dim);}
-.reply-photo-btn svg{width:12px;height:12px;}
-.reply-send-btn{background:var(--green);border:none;border-radius:50px;padding:5px 13px;color:#fff;font-family:var(--f);font-weight:700;font-size:.7rem;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:4px;}
-.reply-send-btn:hover{box-shadow:var(--green-glow);}
-.reply-send-btn:disabled{opacity:.4;cursor:not-allowed;}
-.reply-cancel-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-family:var(--f);font-size:.7rem;padding:4px 8px;border-radius:6px;transition:color .15s;}
-.reply-cancel-btn:hover{color:var(--text);}
-.reply-preview-photo{width:48px;height:48px;border-radius:7px;object-fit:cover;border:1px solid var(--border);}
-.reply-preview-row{display:flex;align-items:center;gap:6px;}
-.reply-preview-remove{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.75rem;padding:2px 4px;border-radius:4px;transition:color .15s;}
-.reply-preview-remove:hover{color:#ff5555;}
-
-/* Comment photo upload row */
-.comment-photo-row{display:flex;align-items:center;gap:8px;}
-.comment-photo-btn{background:none;border:none;color:var(--muted);cursor:pointer;padding:3px 7px;border-radius:7px;display:flex;align-items:center;gap:5px;font-family:var(--f);font-size:.72rem;transition:all .18s;}
-.comment-photo-btn:hover{color:var(--green);background:var(--green-dim);}
-.comment-photo-btn svg{width:13px;height:13px;}
-.comment-photo-preview{width:52px;height:52px;border-radius:8px;object-fit:cover;border:1px solid var(--border);}
-.comment-photo-remove{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.78rem;padding:2px 5px;border-radius:5px;transition:color .15s;}
-.comment-photo-remove:hover{color:#ff5555;}
-
-/* Fullscreen image viewer */
-#img-viewer{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;cursor:zoom-out;backdrop-filter:blur(8px);}
-#img-viewer.open{display:flex;}
-#img-viewer img{max-width:90vw;max-height:90vh;border-radius:12px;box-shadow:0 20px 80px rgba(0,0,0,.8);object-fit:contain;}
-#img-viewer-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.12);border:none;color:#fff;width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;transition:background .15s;}
-#img-viewer-close:hover{background:rgba(255,255,255,.22);}
-
-/* Notif like komentar */
-.notif-icon-comment-like { background: rgba(255,90,90,.15); }
-
-/* Tombol komentar di pub-card (beranda) */
-.pub-comment-btn{display:flex;align-items:center;gap:3px;background:var(--bg);border:1px solid var(--border);color:var(--sub);font-family:var(--f);font-size:.7rem;cursor:pointer;padding:4px 8px;border-radius:50px;transition:all .18s;flex-shrink:0;white-space:nowrap;}
-.pub-comment-btn:hover{color:var(--teal);border-color:rgba(61,157,214,.35);background:rgba(61,157,214,.06);}
-.pub-comment-btn svg{width:12px;height:12px;flex-shrink:0;}
-
-/* Modal komentar (dari beranda pub-card) */
-#comment-modal{position:fixed;inset:0;z-index:9000;display:none;align-items:flex-end;justify-content:center;}
-#comment-modal.open{display:flex;}
-#comment-modal .cm-overlay{position:absolute;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);}
-#comment-modal .cm-sheet{position:relative;z-index:1;background:var(--panel);border:1px solid var(--border);border-radius:20px 20px 0 0;width:100%;max-width:580px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;}
-.cm-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 12px;border-bottom:1px solid var(--border);}
-.cm-title{font-size:.9rem;font-weight:700;}
-.cm-close{background:none;border:none;color:var(--muted);cursor:pointer;padding:4px;border-radius:8px;display:flex;align-items:center;transition:all .15s;}
-.cm-close:hover{color:var(--text);background:var(--hover);}
-.cm-close svg{width:18px;height:18px;}
-.cm-body{flex:1;overflow-y:auto;padding:16px 20px 0;scrollbar-width:thin;scrollbar-color:var(--hover) transparent;}
-.cm-input-wrap{padding:12px 20px 16px;border-top:1px solid var(--border);}
-
 /* TOAST */
 #toast{position:fixed;bottom:105px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--card);border:1px solid var(--border);border-radius:50px;padding:9px 18px;font-size:.8rem;color:var(--text);z-index:9999;opacity:0;transition:all .28s;pointer-events:none;white-space:nowrap}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -506,9 +328,7 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
    ═══════════════════════════════════════════════════════ */
 @media(max-width:660px){
 
-  /* ════════════════════════════════
-     LAYOUT GRID
-  ════════════════════════════════ */
+  /* ── Layout grid ── */
   body{
     grid-template-columns:1fr;
     grid-template-rows:1fr 64px 56px;
@@ -517,17 +337,28 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
   }
   #side{display:none}
   #lyr{display:none}
-  #main{overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;}
 
-  /* ════════════════════════════════
-     PLAYER BAR
-  ════════════════════════════════ */
-  #bar{grid-area:bar;padding:0 12px;height:64px;border-top:1px solid var(--border);border-radius:0;gap:8px;}
-  .bar-track{gap:9px;min-width:0;flex:1;overflow:hidden}
+  /* ── Main scroll area ── */
+  #main{
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    padding-bottom:4px;
+  }
+
+  /* ── Player bar (compact) ── */
+  #bar{
+    grid-area:bar;
+    padding:0 12px;
+    height:64px;
+    border-top:1px solid var(--border);
+    border-radius:0;
+    gap:8px;
+  }
+  .bar-track{gap:9px;min-width:0;flex:1}
   #bar-thumb,.bar-ph{width:40px!important;height:40px!important;border-radius:9px!important;font-size:1.1rem!important;flex-shrink:0}
-  .bar-info{min-width:0;overflow:hidden}
-  .bar-title{font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .bar-artist{font-size:.68rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bar-info{min-width:0}
+  .bar-title{font-size:.78rem}
+  .bar-artist{font-size:.68rem}
   .bar-r{display:none}
   .bar-ctrl{flex:0 0 auto}
   .ctrl-btns{gap:4px}
@@ -536,13 +367,17 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
   #btn-play svg{width:18px;height:18px}
   .prog-wrap{display:none}
 
-  /* ════════════════════════════════
-     BOTTOM NAV
-  ════════════════════════════════ */
+  /* ── Bottom navigation ── */
   #mob-nav{
-    grid-area:mob-nav;display:flex;align-items:center;justify-content:space-around;
-    background:var(--panel);border-top:1px solid var(--border);
-    padding:0 4px;height:56px;z-index:10;
+    grid-area:mob-nav;
+    display:flex;
+    align-items:center;
+    justify-content:space-around;
+    background:var(--panel);
+    border-top:1px solid var(--border);
+    padding:0 4px;
+    height:56px;
+    z-index:10;
   }
   .mob-nav-btn{
     display:flex;flex-direction:column;align-items:center;gap:3px;
@@ -555,113 +390,18 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
   .mob-nav-btn.on{color:var(--green)}
   .mob-nav-btn.on svg{filter:drop-shadow(0 0 6px rgba(29,107,219,.5))}
 
-  /* ════════════════════════════════
-     HOME VIEW
-  ════════════════════════════════ */
+  /* ── Home view ── */
   #home-view{padding:16px 14px 10px}
   .home-greeting{font-size:1.2rem}
   .home-sub{font-size:.75rem;margin-bottom:14px}
-
-  /* Section title: flex nowrap agar "Buat Playlist" tidak terpotong */
-  .home-section-title{
-    font-size:.88rem;margin-bottom:10px;
-    display:flex;align-items:center;justify-content:space-between;
-    gap:8px;flex-wrap:nowrap;overflow:hidden;
-  }
-  .home-section-title > span:first-child{
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;
-  }
-  .home-new-pl-btn{
-    font-size:.68rem;padding:4px 10px;
-    white-space:nowrap;flex-shrink:0;
-  }
-
-  /* Playlist grid 2 kolom */
+  .home-section-title{font-size:.88rem;margin-bottom:10px}
   .playlists-grid{grid-template-columns:repeat(2,1fr);gap:10px}
-  .pg-card{padding:10px;border-radius:12px}
-  .pg-cover{font-size:2.2rem;border-radius:8px;margin-bottom:8px}
-  .pg-name{font-size:.77rem}
-  .pg-count{font-size:.67rem}
-  .pub-section{margin-top:20px}
+  .pl-card{padding:10px;border-radius:12px}
+  .pl-card-cover{height:88px;border-radius:8px;font-size:2.2rem}
+  .pl-card-name{font-size:.77rem}
+  .pl-card-sub{font-size:.67rem}
 
-  /* ════════════════════════════════
-     TOP RANKING — fix like terpotong
-  ════════════════════════════════ */
-  .rank-grid{gap:5px}
-  .rank-item{
-    padding:8px 10px;gap:8px;
-    display:flex;align-items:center;
-    overflow:hidden;min-width:0;
-  }
-  .rank-num{width:20px;font-size:.85rem;flex-shrink:0;text-align:center}
-  .rank-cover{width:36px;height:36px;border-radius:7px;flex-shrink:0}
-  .rank-info{flex:1;min-width:0;overflow:hidden}
-  .rank-name{font-size:.78rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .rank-owner{font-size:.66rem;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  /* Likes selalu tampil penuh di kanan */
-  .rank-likes{
-    display:flex;align-items:center;gap:3px;
-    font-size:.72rem;color:#ff7eb3;font-weight:700;
-    flex-shrink:0;white-space:nowrap;
-    padding-left:6px;
-  }
-  .rank-likes svg{width:12px;height:12px;flex-shrink:0}
-
-  /* ════════════════════════════════
-     PUBLIC PLAYLIST — list style
-  ════════════════════════════════ */
-  .pub-grid{grid-template-columns:1fr;gap:8px}
-  .pub-card{
-    padding:10px 12px;
-    display:flex;flex-direction:row;align-items:center;
-    gap:10px;border-radius:12px;
-    overflow:hidden;min-width:0;
-  }
-  .pub-cover-wrap{
-    width:50px;height:50px;flex-shrink:0;margin-bottom:0;
-    border-radius:8px;overflow:hidden;
-  }
-  .pub-card-cover{
-    width:50px!important;height:50px!important;
-    aspect-ratio:unset!important;
-    border-radius:8px;font-size:1.4rem;
-  }
-  .pub-card-img{
-    width:50px!important;height:50px!important;
-    border-radius:8px;object-fit:cover;display:block;
-  }
-  /* wrapper teks */
-  .pub-card-body{
-    flex:1;min-width:0;
-    display:flex;flex-direction:column;gap:3px;
-    overflow:hidden;
-  }
-  .pub-card-name{
-    font-size:.82rem;font-weight:700;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-    margin-bottom:0;
-  }
-  .pub-card-bottom{
-    display:flex;align-items:center;
-    gap:6px;flex-wrap:nowrap;overflow:hidden;
-  }
-  .pub-card-owner{
-    font-size:.68rem;color:var(--sub);
-    flex:1;min-width:0;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  }
-  /* Like button selalu tampil */
-  .pub-like-btn{
-    display:flex;align-items:center;gap:3px;
-    font-size:.68rem;padding:3px 7px;
-    flex-shrink:0;white-space:nowrap;
-  }
-  .pub-like-btn svg{width:11px;height:11px;flex-shrink:0}
-  .pub-cover-ov{display:none}
-
-  /* ════════════════════════════════
-     SEARCH VIEW
-  ════════════════════════════════ */
+  /* ── Search view ── */
   .main-view{padding:14px 14px 10px}
   #q{font-size:.85rem;padding:11px 88px 11px 40px}
   #btn-search{padding:7px 14px;font-size:.75rem}
@@ -670,103 +410,28 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
   .r-card{padding:10px;border-radius:12px}
   .r-name{font-size:.75rem}.r-art{font-size:.67rem}
 
-  /* ════════════════════════════════
-     HERO NOW PLAYING
-  ════════════════════════════════ */
+  /* ── Hero now playing ── */
   .hero-card{padding:12px;gap:12px;border-radius:13px}
   .hero-img,.hero-ph{width:60px!important;height:60px!important;border-radius:9px!important;font-size:1.5rem!important}
   .hero-title{font-size:1rem}.hero-artist{font-size:.73rem;margin-bottom:8px}
   .hbtn{padding:4px 10px;font-size:.67rem}
 
-  /* ════════════════════════════════
-     PLAYLIST VIEW
-  ════════════════════════════════ */
-  .pv-header{padding:14px 14px 10px}
-  .pv-back{font-size:.78rem;margin-bottom:10px}
-  .pv-top{gap:12px;align-items:center}
-  .pv-cover,.pv-cover-ph{width:96px!important;height:96px!important;border-radius:10px!important;font-size:2.6rem!important;box-shadow:none!important}
-  .pv-type{font-size:.6rem;margin-bottom:4px}
-  .pv-title{font-size:1.25rem;line-height:1.2}
-  .pv-sub{font-size:.72rem}
-
-  /* Actions: baris 1 = play + ubah nama + tambah lagu, baris 2 = publikasi + hapus */
-  .pv-actions{
-    padding:8px 14px 10px;
-    gap:6px;
-    display:flex;flex-wrap:wrap;align-items:center;
-  }
-  .pv-play-btn{width:42px;height:42px;flex-shrink:0}
-  .pv-play-btn svg{width:17px;height:17px}
-  .pv-action-btn{
-    padding:5px 10px;font-size:.68rem;
-    white-space:nowrap;flex-shrink:0;
-  }
-  .pv-publish-btn{
-    padding:5px 10px;font-size:.68rem;
-    white-space:nowrap;flex-shrink:0;
-  }
-
-  /* Track list */
+  /* ── Playlist view ── */
+  .pv-header{padding:14px 14px 12px}
+  .pv-top{gap:14px;align-items:center}
+  .pv-cover,.pv-cover-ph{width:100px!important;height:100px!important;border-radius:10px!important;font-size:2.8rem!important}
+  .pv-title{font-size:1.3rem}.pv-sub{font-size:.73rem}
+  .pv-actions{padding:10px 14px;gap:8px;flex-wrap:wrap}
+  .pv-play-btn{width:44px;height:44px}
+  .pv-play-btn svg{width:18px;height:18px}
+  .pv-action-btn{padding:5px 11px;font-size:.7rem}
   .pv-tracks{padding:0 14px 18px}
-  .track-list-header,.track-row{grid-template-columns:24px 1fr 42px;gap:8px}
+  .track-list-header,.track-row{grid-template-columns:26px 1fr 48px}
   .tr-album{display:none}
-  .tr-thumb,.tr-thumb-ph{width:32px!important;height:32px!important}
-  .tr-title{font-size:.77rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .tr-artist{font-size:.66rem}
-  .tr-dur{font-size:.67rem}
+  .tr-thumb,.tr-thumb-ph{width:33px!important;height:33px!important}
+  .tr-title{font-size:.77rem}.tr-artist{font-size:.66rem}.tr-dur{font-size:.67rem}
 
-  /* ════════════════════════════════
-     FULLSCREEN LYRICS
-  ════════════════════════════════ */
-  #fs-lyr-scroll{padding:60px 6% 160px}
-  /* Ukuran teks lebih kecil agar tidak terlalu besar di hp */
-  .fs-ll{
-    font-size:1.1rem;
-    line-height:1.5;
-    padding:4px 0;
-    color:rgba(255,255,255,0.28);
-  }
-  .fs-ll.active{
-    font-size:1.3rem;
-    color:#fff;
-  }
-  .fs-ll.past{color:rgba(255,255,255,0.16)}
-
-  /* Nav bar fullscreen */
-  #fs-nav{
-    position:relative;z-index:2;
-    display:flex;align-items:center;justify-content:space-between;
-    padding:12px 14px 8px;gap:6px;
-  }
-  #fs-back,#fs-pure-btn,#fs-bg-btn,#fs-style-btn{
-    width:34px;height:34px;flex-shrink:0;
-  }
-  #fs-track-info{flex:1;min-width:0;text-align:center;overflow:hidden}
-  #fs-track-name{
-    font-size:.62rem;font-weight:700;
-    color:rgba(255,255,255,.65);
-    letter-spacing:1.5px;text-transform:uppercase;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  }
-  #fs-artist-name{
-    font-size:.75rem;font-weight:600;color:#fff;margin-top:2px;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  }
-
-  /* Control bar fullscreen */
-  #fs-bar{padding:10px 16px 20px}
-  #fs-prog-wrap{margin-bottom:12px}
-  #fs-ctrl{gap:16px}
-  #fs-btn-play{width:48px;height:48px}
-  #fs-btn-play svg{width:20px;height:20px}
-  .fs-btn svg{width:19px;height:19px}
-
-  /* Pure mode hint */
-  #pure-exit-hint{top:12px;right:12px;font-size:.62rem;padding:6px 12px}
-
-  /* ════════════════════════════════
-     MODALS
-  ════════════════════════════════ */
+  /* ── Modals ── */
   .modal{width:calc(100vw - 28px);padding:20px 16px;border-radius:16px}
   .modal h3{font-size:.93rem}
   .modal-input{font-size:.84rem;padding:9px 12px}
@@ -774,14 +439,20 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
   .auth-btns{flex-direction:column;align-items:stretch}
   .btn-login,.btn-back{justify-content:center;text-align:center}
 
-  /* ════════════════════════════════
-     TOAST
-  ════════════════════════════════ */
+  /* ── Toast ── */
   #toast{bottom:132px;font-size:.73rem;padding:8px 16px;max-width:84vw;white-space:normal;text-align:center}
 
-  /* ════════════════════════════════
-     EMPTY STATES
-  ════════════════════════════════ */
+  /* ── Fullscreen lyrics ── */
+  #fs-lyr-scroll{padding:16px 5% 140px}
+  .fs-ll{font-size:1.45rem;line-height:1.35}
+  .fs-ll.active{font-size:1.65rem}
+  #fs-bar{padding:12px 18px 20px}
+  #fs-ctrl{gap:14px}
+  #fs-btn-play{width:46px;height:46px}
+  #fs-btn-play svg{width:19px;height:19px}
+  .fs-btn svg{width:18px;height:18px}
+
+  /* ── Empty states ── */
   .empty{padding:36px 18px}
   .empty i{font-size:2.4rem}
   .empty h3{font-size:.97rem}
@@ -809,13 +480,6 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
 .fs-ll.active{color:#fff;font-size:2.1rem;text-shadow:0 2px 20px rgba(0,0,0,0.4);}
 .fs-ll.past{color:rgba(255,255,255,0.18);}
 .fs-ll:hover{color:rgba(255,255,255,0.7);}
-/* Instrumental in fullscreen */
-.fs-ll.lyr-instrumental{display:flex;align-items:center;gap:10px;}
-.fs-ll.lyr-instrumental .inst-icon{font-size:1.5rem;opacity:.45;}
-.fs-ll.lyr-instrumental.active .inst-icon{opacity:1;filter:drop-shadow(0 0 10px rgba(255,255,255,.5));}
-.fs-ll.lyr-instrumental .inst-dot{width:9px;height:9px;background:rgba(255,255,255,0.25);}
-.fs-ll.lyr-instrumental.active .inst-dot{background:rgba(255,255,255,0.85);animation:instPulse 1.1s ease-in-out infinite;}
-.fs-ll.lyr-instrumental.past .inst-dot{background:rgba(255,255,255,0.1);}
 #fs-bar{position:absolute;bottom:0;left:0;right:0;z-index:3;background:linear-gradient(to top,rgba(0,0,0,0.7) 80%,transparent);padding:16px 28px 28px;}
 #fs-prog-wrap{display:flex;align-items:center;gap:10px;margin-bottom:14px}
 #fs-prog-track{flex:1;height:4px;background:rgba(255,255,255,0.25);border-radius:4px;cursor:pointer;position:relative;overflow:hidden;transition:height .15s;}
@@ -830,410 +494,8 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
 #fs-btn-play{width:52px;height:52px;background:#fff;border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;opacity:1;}
 #fs-btn-play:hover{transform:scale(1.06);box-shadow:0 0 20px rgba(255,255,255,0.4)}
 #fs-btn-play svg{width:22px;height:22px;color:#000}
-/* PURE LYRICS MODE (no controls) */
-#fs-lyr.pure-mode #fs-nav { opacity: 0; pointer-events: none; transition: opacity .4s; }
-#fs-lyr.pure-mode #fs-bar { opacity: 0; pointer-events: none; transition: opacity .4s; }
-#fs-lyr.pure-mode #fs-lyr-scroll { padding-bottom: 40px; }
-#fs-lyr.pure-mode .fs-ll { font-size: 2.1rem; }
-#fs-lyr.pure-mode .fs-ll.active { font-size: 2.35rem; }
-
-/* Exit pure mode hint */
-#pure-exit-hint {
-  position: absolute; top: 18px; right: 18px;
-  z-index: 10; background: rgba(0,0,0,0.45); backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,0.12); border-radius: 50px;
-  padding: 8px 16px; color: rgba(255,255,255,0.7); font-size: .72rem;
-  font-family: var(--f); font-weight: 600; letter-spacing: .5px;
-  opacity: 0; transition: opacity .4s; pointer-events: none; white-space: nowrap;
-}
-#fs-lyr.pure-mode #pure-exit-hint { opacity: 1; pointer-events: auto; cursor: pointer; }
-
-/* Pure mode button */
-#fs-pure-btn {
-  background: rgba(0,0,0,0.3); border: none; border-radius: 50%;
-  width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
-  cursor: pointer; color: #fff; transition: background .2s;
-}
-#fs-pure-btn:hover { background: rgba(0,0,0,0.5); }
-#fs-pure-btn svg { width: 18px; height: 18px; }
-
-/* ── LYRICS BACKGROUND FEATURE ─────────────────────────── */
-/* Custom background photo applied to fullscreen lyrics */
-#fs-lyr.has-custom-bg {
-  background: transparent !important;
-}
-#fs-lyr.has-custom-bg #fs-bg {
-  background-size: cover !important;
-  background-position: center !important;
-  background-repeat: no-repeat !important;
-  filter: blur(0px);
-}
-#fs-lyr.has-custom-bg #fs-bg::after {
-  background: rgba(0,0,0,0.52);
-}
-
-/* Change BG button in fs-nav */
-#fs-bg-btn {
-  background: rgba(0,0,0,0.3); border: none; border-radius: 50%;
-  width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
-  cursor: pointer; color: #fff; transition: background .2s; flex-shrink: 0;
-}
-#fs-bg-btn:hover { background: rgba(0,0,0,0.5); }
-#fs-bg-btn svg { width: 18px; height: 18px; }
-
-/* Lyrics BG modal */
-#lyr-bg-modal .modal { width: 360px; }
-.lyr-bg-preview-wrap {
-  position: relative; width: 100%; aspect-ratio: 16/9;
-  border-radius: 10px; overflow: hidden; background: var(--hover);
-  margin-bottom: 14px; display: flex; align-items: center; justify-content: center;
-  border: 1px solid var(--border);
-}
-#lyr-bg-preview-img {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  object-fit: cover; display: none; border-radius: 10px;
-}
-.lyr-bg-preview-empty {
-  display: flex; flex-direction: column; align-items: center;
-  gap: 8px; color: var(--muted); font-size: .8rem;
-}
-.lyr-bg-preview-empty svg { width: 32px; height: 32px; opacity: .5; }
-.lyr-bg-actions { display: flex; gap: 8px; margin-bottom: 14px; }
-.lyr-bg-upload-btn {
-  flex: 1; background: var(--green-dim); border: 1px solid rgba(29,107,219,.4);
-  border-radius: 50px; padding: 9px 14px; color: var(--green);
-  font-family: var(--f); font-weight: 700; font-size: .8rem;
-  cursor: pointer; transition: all .2s; display: flex; align-items: center;
-  justify-content: center; gap: 6px;
-}
-.lyr-bg-upload-btn:hover { background: var(--green); color: #fff; }
-.lyr-bg-upload-btn svg { width: 15px; height: 15px; }
-.lyr-bg-reset-btn {
-  background: none; border: 1px solid var(--border); border-radius: 50px;
-  padding: 9px 14px; color: var(--sub); font-family: var(--f);
-  font-size: .8rem; cursor: pointer; transition: all .2s;
-  display: flex; align-items: center; gap: 6px;
-}
-.lyr-bg-reset-btn:hover { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
-.lyr-bg-reset-btn svg { width: 14px; height: 14px; }
-#lyr-bg-file { display: none; }
-.lyr-bg-tip { font-size: .7rem; color: var(--muted); text-align: center; margin-bottom: 14px; line-height: 1.6; }
-
-/* ══════════════════════════════════════════════════════════
-   GAYA TEKS BUTTON (di lyr-head)
-══════════════════════════════════════════════════════════ */
-#lyr-style-btn {
-  background: none; border: none; color: var(--muted); cursor: pointer;
-  padding: 6px 10px; border-radius: 8px; display: flex; align-items: center;
-  gap: 5px; font-family: var(--f); font-size: .7rem; font-weight: 700;
-  letter-spacing: .5px; text-transform: uppercase; transition: all .18s;
-  white-space: nowrap;
-}
-#lyr-style-btn:hover { color: var(--text); background: var(--hover); }
-#lyr-style-btn.active { color: var(--green); background: var(--green-dim); }
-#lyr-style-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
-
-/* Gaya Teks button inside FS nav */
-#fs-style-btn {
-  background: rgba(0,0,0,0.3); border: none; border-radius: 50%;
-  width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
-  cursor: pointer; color: #fff; transition: background .2s; flex-shrink: 0;
-}
-#fs-style-btn:hover { background: rgba(0,0,0,0.5); }
-#fs-style-btn svg { width: 18px; height: 18px; }
-#fs-style-btn.active { color: var(--green); box-shadow: 0 0 12px rgba(29,107,219,.5); }
-
-/* ══════════════════════════════════════════════════════════
-   KINETIC TYPOGRAPHY MODE — Word-by-word, music-synced
-══════════════════════════════════════════════════════════ */
-#fs-lyr.kinetic-mode #fs-lyr-scroll { display: none; }
-#kinetic-stage {
-  display: none; position: absolute; inset: 0; z-index: 2;
-  align-items: center; justify-content: center; flex-direction: column;
-  overflow: hidden; padding: 0 8%;
-  pointer-events: none;
-}
-#fs-lyr.kinetic-mode #kinetic-stage { display: flex; }
-
-/* ── Baris konteks (prev / next) ── */
-.k-line {
-  font-family: 'Outfit', sans-serif;
-  font-weight: 800;
-  line-height: 1.15;
-  text-align: center;
-  width: 100%;
-  letter-spacing: -0.5px;
-  position: absolute; left: 0; right: 0;
-  will-change: transform, opacity, filter;
-  transition: opacity .5s ease, filter .5s ease, transform .5s cubic-bezier(.22,1,.36,1);
-}
-.k-line.k-prev {
-  font-size: clamp(.9rem, 3vw, 1.4rem);
-  color: rgba(255,255,255,0.18);
-  top: 12%; filter: blur(1.5px);
-  transform: scale(0.88);
-}
-.k-line.k-next {
-  font-size: clamp(.9rem, 3vw, 1.4rem);
-  color: rgba(255,255,255,0.18);
-  bottom: 12%; filter: blur(1.5px);
-  transform: scale(0.88);
-}
-
-/* ── Stage kata-kata aktif ── */
-#k-word-stage {
-  position: absolute; left: 4%; right: 4%;
-  top: 50%; transform: translateY(-50%);
-  display: flex; flex-wrap: wrap; justify-content: center; align-items: center;
-  gap: 4px 10px;
-  pointer-events: none;
-}
-
-/* Setiap kata dimulai tak terlihat */
-.k-word {
-  display: inline-block;
-  font-family: 'Outfit', sans-serif;
-  font-weight: 800;
-  font-size: clamp(1.5rem, 5.5vw, 3rem);
-  letter-spacing: -0.5px;
-  line-height: 1.15;
-  color: rgba(255,255,255,0.12);
-  filter: blur(4px);
-  transform: translateY(18px) scale(0.82);
-  opacity: 0;
-  transition: none; /* dikontrol via JS + class */
-  will-change: transform, opacity, filter, color;
-}
-
-/* State: kata baru saja muncul (animasi masuk) */
-.k-word.k-word-enter {
-  animation: kw-enter .22s cubic-bezier(.34,1.56,.64,1) forwards;
-}
-@keyframes kw-enter {
-  0%   { transform: translateY(22px) scale(0.78); opacity: 0; filter: blur(6px); color: rgba(255,255,255,0.1); }
-  60%  { opacity: 1; filter: blur(0); color: #fff; }
-  100% { transform: translateY(0) scale(1); opacity: 1; filter: blur(0); color: #fff; }
-}
-
-/* State: kata sedang aktif (lit up) */
-.k-word.k-word-lit {
-  transform: translateY(0) scale(1);
-  opacity: 1;
-  filter: blur(0);
-  color: #fff;
-  text-shadow: 0 0 28px rgba(255,255,255,0.9), 0 0 55px rgba(29,107,219,0.7);
-}
-
-/* State: kata sudah terlewati */
-.k-word.k-word-past {
-  transform: translateY(0) scale(1);
-  opacity: 1;
-  filter: blur(0);
-  color: rgba(255,255,255,0.38);
-  text-shadow: none;
-  transition: color .35s ease, text-shadow .35s ease;
-}
-
-/* Animasi ganti baris: stage geser */
-@keyframes kw-stage-in {
-  from { opacity: 0; transform: translateY(-50%) translateY(40px); }
-  to   { opacity: 1; transform: translateY(-50%) translateY(0); }
-}
-#k-word-stage.k-stage-enter {
-  animation: kw-stage-in .38s cubic-bezier(.22,1,.36,1) forwards;
-}
-
-/* Motion blur overlay on transition */
-#k-blur-overlay {
-  position: absolute; inset: 0; pointer-events: none; z-index: 5;
-  background: radial-gradient(ellipse 80% 40% at 50% 50%, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 100%);
-  opacity: 0;
-}
-#k-blur-overlay.flash { animation: k-blur-flash .4s ease forwards; }
-@keyframes k-blur-flash {
-  0%   { opacity: 0.85; filter: blur(3px); }
-  50%  { opacity: 0.4; filter: blur(1px); }
-  100% { opacity: 0; filter: blur(0); }
-}
-
-/* Progress dots */
-#k-progress-dots {
-  position: absolute; bottom: 140px; left: 0; right: 0; z-index: 4;
-  display: flex; justify-content: center; gap: 6px; pointer-events: none;
-}
-.k-dot {
-  width: 5px; height: 5px; border-radius: 50%;
-  background: rgba(255,255,255,0.2); transition: all .15s;
-}
-.k-dot.lit {
-  background: #fff;
-  box-shadow: 0 0 8px rgba(255,255,255,0.8);
-  transform: scale(1.35);
-}
-
-/* Gaya Teks style picker modal */
-#style-picker-modal .modal { width: 320px; }
-.style-picker-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
-.style-picker-item {
-  background: var(--card); border: 2px solid var(--border); border-radius: 12px;
-  padding: 14px 10px; cursor: pointer; text-align: center; transition: all .2s;
-  display: flex; flex-direction: column; align-items: center; gap: 7px;
-}
-.style-picker-item:hover { border-color: var(--green); background: var(--hover); }
-.style-picker-item.selected { border-color: var(--green); background: var(--green-dim); }
-.style-picker-icon { font-size: 1.5rem; }
-.style-picker-name { font-size: .75rem; font-weight: 700; color: var(--text); }
-.style-picker-desc { font-size: .65rem; color: var(--sub); line-height: 1.4; }
-
-@media(max-width:660px){
-  #lyr-style-btn { display: none; }
-  #lyr-offset-toggle { display: none; }
-  #kinetic-stage { padding: 0 5%; }
-  .k-word { font-size: clamp(1.2rem, 6.5vw, 2rem); }
-  .k-line.k-prev, .k-line.k-next { font-size: clamp(.8rem, 3vw, 1.1rem); }
-  #k-progress-dots { bottom: 120px; }
-}
-
-/* ══════════════════════════════════════════════════════════
-   NOTIFIKASI
-══════════════════════════════════════════════════════════ */
-.notif-bell-wrap {
-  position: relative;
-}
-.notif-bell-btn {
-  display: flex; align-items: center; gap: 10px;
-  padding: 9px 10px; border-radius: var(--rs);
-  cursor: pointer; border: none; background: none;
-  color: var(--sub); font-family: var(--f);
-  font-size: .83rem; font-weight: 500;
-  width: 100%; transition: all .18s; text-align: left;
-}
-.notif-bell-btn:hover { background: var(--hover); color: var(--text); }
-.notif-bell-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
-.notif-badge {
-  background: var(--green);
-  color: #fff; font-size: .6rem; font-weight: 800;
-  border-radius: 50px; padding: 1px 6px;
-  min-width: 18px; text-align: center;
-  margin-left: auto; line-height: 1.6;
-  display: none;
-}
-.notif-badge.show { display: block; }
-
-/* Panel notifikasi */
-#notif-panel {
-  position: fixed; top: 0; right: -360px;
-  width: 340px; height: 100vh;
-  background: var(--panel);
-  border-left: 1px solid var(--border);
-  z-index: 800;
-  display: flex; flex-direction: column;
-  transition: right .3s cubic-bezier(.22,1,.36,1);
-  box-shadow: -8px 0 32px rgba(0,0,0,.4);
-}
-#notif-panel.open { right: 0; }
-.notif-panel-head {
-  padding: 18px 16px 12px;
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between;
-}
-.notif-panel-title {
-  font-size: .93rem; font-weight: 700;
-  display: flex; align-items: center; gap: 8px;
-}
-.notif-panel-title svg { width: 17px; height: 17px; color: var(--green); }
-.notif-panel-actions { display: flex; gap: 6px; }
-.notif-clear-btn {
-  background: none; border: 1px solid var(--border);
-  border-radius: 50px; padding: 4px 12px;
-  color: var(--sub); font-family: var(--f);
-  font-size: .7rem; cursor: pointer; transition: all .18s;
-}
-.notif-clear-btn:hover { color: var(--text); border-color: var(--green); }
-.notif-close-btn {
-  background: none; border: none; color: var(--sub);
-  cursor: pointer; padding: 6px; border-radius: 8px;
-  display: flex; align-items: center; transition: all .18s;
-}
-.notif-close-btn:hover { color: var(--text); background: var(--hover); }
-.notif-close-btn svg { width: 18px; height: 18px; }
-
-#notif-list {
-  flex: 1; overflow-y: auto;
-  scrollbar-width: thin; scrollbar-color: var(--hover) transparent;
-}
-.notif-empty {
-  text-align: center; padding: 60px 20px;
-  color: var(--muted); font-size: .82rem; line-height: 1.8;
-}
-.notif-empty span { display: block; font-size: 2.2rem; margin-bottom: 10px; }
-
-.notif-item {
-  display: flex; gap: 12px;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
-  transition: background .15s; cursor: default;
-  position: relative;
-}
-.notif-item:hover { background: var(--hover); }
-.notif-item.unread::before {
-  content: ''; position: absolute;
-  left: 0; top: 0; bottom: 0; width: 3px;
-  background: var(--green); border-radius: 0 3px 3px 0;
-}
-.notif-avatar {
-  width: 40px; height: 40px; border-radius: 50%;
-  background: var(--hover); flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1rem; overflow: hidden; border: 2px solid var(--border);
-}
-.notif-avatar img {
-  width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
-}
-.notif-icon-wrap {
-  width: 40px; height: 40px; border-radius: 50%;
-  flex-shrink: 0; display: flex; align-items: center;
-  justify-content: center; font-size: 1.2rem;
-}
-.notif-icon-like { background: rgba(255,90,90,.15); }
-.notif-icon-comment { background: rgba(29,107,219,.15); }
-.notif-body { flex: 1; min-width: 0; }
-.notif-msg {
-  font-size: .82rem; line-height: 1.55;
-  color: var(--text); margin-bottom: 4px;
-}
-.notif-msg strong { color: var(--text); font-weight: 700; }
-.notif-msg .notif-pl { color: var(--green); font-weight: 600; }
-.notif-time {
-  font-size: .68rem; color: var(--muted);
-  display: flex; align-items: center; gap: 4px;
-}
-.notif-comment-preview {
-  margin-top: 6px; background: var(--card);
-  border-left: 2px solid var(--green);
-  border-radius: 0 6px 6px 0;
-  padding: 6px 10px;
-  font-size: .75rem; color: var(--sub);
-  font-style: italic; line-height: 1.5;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-
-/* Overlay gelap di belakang panel */
-#notif-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,.4);
-  z-index: 799; display: none; backdrop-filter: blur(2px);
-}
-#notif-overlay.show { display: block; }
-
-/* Mobile adjustments */
-@media(max-width:660px) {
-  #notif-panel {
-    width: 100vw; right: -100vw;
-    border-left: none;
-  }
-  #notif-panel.open { right: 0; }
-}
 </style>
+</head>
 <body>
 
 <!-- AUTH OVERLAY -->
@@ -1278,16 +540,9 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
       <div class="cloud-dot" id="cloud-dot"></div>
       <span id="cloud-status">Tidak terhubung</span>
     </div>
-    <div class="notif-bell-wrap">
-      <button class="notif-bell-btn" onclick="toggleNotifPanel()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-        Notifikasi
-        <span class="notif-badge" id="notif-badge">0</span>
-      </button>
-    </div>
-    <button class="side-nav-btn" onclick="window.location.href='profile.html'">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v2h20v-2c0-3.3-6.7-5-10-5z"/></svg>
-      Profil Saya
+    <button class="side-nav-btn" onclick="window.location.href='reels.html'">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 10l4.553-2.07A1 1 0 0 1 21 8.83v6.34a1 1 0 0 1-1.447.9L15 14M3 8a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8z"/></svg>
+      Kembali ke Reels
     </button>
     <button class="side-nav-btn" id="logout-btn" onclick="doLogout()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
@@ -1315,37 +570,6 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
         <i>🎧</i>
         <h3>Belum Ada Playlist</h3>
         <p>Klik "+ Buat Playlist" untuk memulai</p>
-      </div>
-    </div>
-
-    <!-- TOP RANKING -->
-    <div class="pub-section" id="top-ranking-section" style="display:none;">
-      <div class="pub-section-header">
-        <div class="pub-section-title">
-          🏆 Top Playlist
-          <span class="pub-badge">Ranking</span>
-        </div>
-      </div>
-      <div class="rank-grid" id="rank-grid"></div>
-    </div>
-
-    <!-- PUBLIC PLAYLISTS FEED -->
-    <div class="pub-section" id="public-feed-section" style="display:none;">
-      <div class="pub-section-header">
-        <div class="pub-section-title">
-          🌐 Playlist Publik
-          <span class="pub-badge">Live</span>
-        </div>
-        <button class="home-new-pl-btn" onclick="loadPublicFeed()" style="background:none;border:1px solid var(--border);color:var(--sub);">
-          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
-          Refresh
-        </button>
-      </div>
-      <div class="pub-grid" id="pub-grid">
-        <div class="empty" style="grid-column:1/-1;padding:24px 0;font-size:.82rem;">
-          <i>🌐</i>
-          <h3>Memuat playlist publik...</h3>
-        </div>
       </div>
     </div>
   </div>
@@ -1417,13 +641,13 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         Ubah Nama
       </button>
+      <button class="pv-reorder-btn" id="pv-reorder-btn" onclick="toggleReorderMode()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><circle cx="8" cy="9" r="1.5" fill="currentColor" stroke="none"/><circle cx="8" cy="15" r="1.5" fill="currentColor" stroke="none"/></svg>
+        Atur Urutan
+      </button>
       <button class="pv-action-btn" onclick="openAddSongModal()" style="margin-left:auto;">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
         Tambah Lagu
-      </button>
-      <button class="pv-publish-btn" id="pv-publish-btn" onclick="togglePublishPlaylist()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-        Publikasikan
       </button>
       <button class="pv-action-btn" onclick="deleteCurrentPlaylist()" style="color:#ff6b6b;border-color:rgba(255,107,107,.3);">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
@@ -1433,113 +657,14 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
     <div class="pv-tracks" id="pv-tracks">
       <div class="pv-empty"><div class="pv-empty-icon">🎵</div>Belum ada lagu di playlist ini.<br>Klik "Tambah Lagu" untuk mulai menambahkan.</div>
     </div>
-    <!-- COMMENT SECTION (playlist publik) -->
-    <div class="comment-section" id="pv-comment-section" style="display:none;">
-      <div class="comment-section-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        Komentar
-      </div>
-      <div class="comment-input-wrap" id="pv-comment-input-wrap">
-        <div class="comment-avatar-self" id="pv-comment-self-avatar">👤</div>
-        <div class="comment-box">
-          <textarea class="comment-textarea" id="pv-comment-textarea" placeholder="Tulis komentar..." rows="1"></textarea>
-          <div id="pv-comment-photo-preview-row" style="display:none;" class="reply-preview-row">
-            <img id="pv-comment-photo-preview" class="comment-photo-preview" src="" alt="">
-            <button class="reply-preview-remove" onclick="removePvCommentPhoto()" title="Hapus foto">✕</button>
-          </div>
-          <div class="comment-send-row" style="justify-content:space-between;">
-            <button class="comment-photo-btn" id="pv-comment-photo-btn" onclick="document.getElementById('pv-comment-photo-input').click()" title="Bagikan foto">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-              Foto
-            </button>
-            <input type="file" id="pv-comment-photo-input" accept="image/*" style="display:none;" onchange="onPvCommentPhotoSelected(event)">
-            <button class="comment-send-btn" id="pv-comment-send-btn" disabled>
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-              Kirim
-            </button>
-          </div>
-        </div>
-      </div>
-      <div class="comment-list" id="pv-comment-list">
-        <div class="comment-loading">Memuat komentar...</div>
-      </div>
-    </div>
   </div>
 
 </main>
-
-<!-- IMAGE VIEWER FULLSCREEN -->
-<div id="img-viewer" onclick="closeImgViewer()">
-  <button id="img-viewer-close" onclick="closeImgViewer()">✕</button>
-  <img id="img-viewer-img" src="" alt="">
-</div>
-
-<!-- MODAL KOMENTAR (dari beranda pub-card) -->
-<div id="comment-modal">
-  <div class="cm-overlay" onclick="closeCommentModal()"></div>
-  <div class="cm-sheet">
-    <div class="cm-header">
-      <div class="cm-title" id="cm-modal-title">Komentar</div>
-      <button class="cm-close" onclick="closeCommentModal()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
-      </button>
-    </div>
-    <div class="cm-body" id="cm-modal-body">
-      <div class="comment-list" id="cm-modal-list">
-        <div class="comment-loading">Memuat komentar...</div>
-      </div>
-    </div>
-    <div class="cm-input-wrap">
-      <div class="comment-input-wrap" style="margin-bottom:0;">
-        <div class="comment-avatar-self" id="cm-modal-self-avatar">👤</div>
-        <div class="comment-box">
-          <textarea class="comment-textarea" id="cm-modal-textarea" placeholder="Tulis komentar..." rows="1"></textarea>
-          <div id="cm-modal-photo-preview-row" style="display:none;" class="reply-preview-row">
-            <img id="cm-modal-photo-preview" class="comment-photo-preview" src="" alt="">
-            <button class="reply-preview-remove" onclick="removeCmModalPhoto()" title="Hapus foto">✕</button>
-          </div>
-          <div class="comment-send-row" style="justify-content:space-between;">
-            <button class="comment-photo-btn" onclick="document.getElementById('cm-modal-photo-input').click()" title="Bagikan foto">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-              Foto
-            </button>
-            <input type="file" id="cm-modal-photo-input" accept="image/*" style="display:none;" onchange="onCmModalPhotoSelected(event)">
-            <button class="comment-send-btn" id="cm-modal-send-btn" disabled>
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-              Kirim
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- LYRICS -->
 <aside id="lyr">
   <div class="lyr-head">
     <div class="lyr-ttl">Lirik <span class="lyr-badge">Live</span></div>
-    <div style="display:flex;align-items:center;gap:4px;">
-    <!-- Offset controls -->
-    <div id="lyr-offset-wrap" style="display:none;align-items:center;gap:2px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:2px 4px;">
-      <button onclick="adjustLyrOffset(-0.5)" title="Lirik terlalu cepat (mundurkan -0.5s)" style="background:none;border:none;color:var(--sub);cursor:pointer;padding:3px 5px;border-radius:5px;font-size:.75rem;font-weight:700;transition:all .15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--sub)'">−</button>
-      <span id="lyr-offset-val" style="font-size:.65rem;font-family:var(--fm);color:var(--green);min-width:32px;text-align:center;font-weight:700;">0.0s</span>
-      <button onclick="adjustLyrOffset(0.5)" title="Lirik terlalu lambat (majukan +0.5s)" style="background:none;border:none;color:var(--sub);cursor:pointer;padding:3px 5px;border-radius:5px;font-size:.75rem;font-weight:700;transition:all .15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--sub)'">+</button>
-    </div>
-    <button id="lyr-offset-toggle" onclick="toggleOffsetBar()" title="Kalibrasi sinkronisasi lirik" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:6px;border-radius:8px;display:flex;align-items:center;justify-content:center;transition:all .18s;" onmouseover="this.style.color='var(--text)';this.style.background='var(--hover)'" onmouseout="this.style.color='var(--muted)';this.style.background='none'">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
-    </button>
-    <button id="lyr-style-btn" onclick="openStylePicker()" title="Gaya teks lirik">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h10M4 17h6"/><circle cx="19" cy="17" r="2"/><path d="M19 15v-3"/></svg>
-      Gaya
-    </button>
-    <button id="lyr-fs-btn" onclick="openFS()" title="Layar penuh" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:6px;border-radius:8px;display:flex;align-items:center;justify-content:center;transition:all .18s;" onmouseover="this.style.color='var(--text)';this.style.background='var(--hover)'" onmouseout="this.style.color='var(--muted)';this.style.background='none'">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="17" height="17">
-        <path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/>
-        <path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
-      </svg>
-    </button>
-    </div>
   </div>
   <div class="lyr-body">
     <div class="lyr-fade-t"></div>
@@ -1656,39 +781,7 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
       <div id="fs-track-name">SEDANG DIPUTAR</div>
       <div id="fs-artist-name">—</div>
     </div>
-    <!-- Change lyrics background button -->
-    <button id="fs-bg-btn" title="Ganti background lirik" onclick="openLyrBgModal()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
-        <path d="m21 15-5-5L5 21"/>
-      </svg>
-    </button>
-    <!-- Offset kalibrasi di fullscreen -->
-    <div id="fs-offset-wrap" style="display:flex;align-items:center;gap:3px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:3px 6px;">
-      <button onclick="adjustLyrOffset(-0.5)" title="Mundurkan lirik" style="background:none;border:none;color:rgba(255,255,255,0.6);cursor:pointer;padding:2px 6px;border-radius:6px;font-size:.85rem;font-weight:700;transition:all .15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.6)'">−</button>
-      <span id="fs-offset-val" style="font-size:.65rem;font-family:var(--fm);color:#fff;min-width:36px;text-align:center;font-weight:700;opacity:.9;">0.0s</span>
-      <button onclick="adjustLyrOffset(0.5)" title="Majukan lirik" style="background:none;border:none;color:rgba(255,255,255,0.6);cursor:pointer;padding:2px 6px;border-radius:6px;font-size:.85rem;font-weight:700;transition:all .15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.6)'">+</button>
-    </div>
-    <button id="fs-pure-btn" title="Mode lirik penuh">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-        <path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/>
-        <path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
-      </svg>
-    </button>
-    <button id="fs-style-btn" title="Gaya teks lirik" onclick="openStylePicker()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h10M4 17h6"/><circle cx="19" cy="17" r="2"/><path d="M19 15v-3"/></svg>
-    </button>
-  </div>
-  <!-- Kinetic Typography Stage -->
-  <div id="kinetic-stage">
-    <!-- Baris konteks atas (sebelumnya) -->
-    <div class="k-line k-prev" id="k-prev"></div>
-    <!-- Stage kata-kata per-kata aktif -->
-    <div id="k-word-stage"></div>
-    <!-- Baris konteks bawah (berikutnya) -->
-    <div class="k-line k-next" id="k-next"></div>
-    <div id="k-blur-overlay"></div>
-    <div id="k-progress-dots"></div>
+    <div style="width:38px"></div>
   </div>
   <div id="fs-lyr-scroll">
     <div class="lyr-empty" style="color:rgba(255,255,255,0.4)"><i>🎤</i>Memuat lirik...</div>
@@ -1712,8 +805,6 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
       </button>
     </div>
   </div>
-  <!-- Hint keluar pure mode -->
-  <div id="pure-exit-hint" onclick="togglePureMode()">✕ &nbsp;Keluar mode penuh</div>
 </div>
 
 <div id="mob-nav" style="display:none">
@@ -1729,94 +820,10 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
     Playlist
   </button>
-  <button class="mob-nav-btn" id="mob-btn-profile" onclick="window.location.href='profile.html'">
-    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v2h20v-2c0-3.3-6.7-5-10-5z"/></svg>
-    Profil
+  <button class="mob-nav-btn" id="mob-btn-logout" onclick="doLogout()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+    Keluar
   </button>
-  <button class="mob-nav-btn" id="mob-btn-notif" onclick="toggleNotifPanel()" style="position:relative;">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-    Notif
-    <span class="notif-badge" id="mob-notif-badge" style="position:absolute;top:4px;right:16px;margin:0;"></span>
-  </button>
-</div>
-
-<!-- Lyrics Background Modal -->
-<div id="lyr-bg-modal" class="modal-bg" style="display:none">
-  <div class="modal">
-    <h3>🖼️ Background Lirik</h3>
-    <p>Pasang foto kamu sebagai latar fullscreen lirik</p>
-    <div class="lyr-bg-preview-wrap">
-      <img id="lyr-bg-preview-img" alt="Preview background">
-      <div class="lyr-bg-preview-empty" id="lyr-bg-preview-empty">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
-        <span>Belum ada foto</span>
-      </div>
-    </div>
-    <div class="lyr-bg-actions">
-      <label class="lyr-bg-upload-btn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        Upload Foto
-        <input type="file" id="lyr-bg-file" accept="image/*">
-      </label>
-      <button class="lyr-bg-reset-btn" id="lyr-bg-reset-btn" onclick="resetLyrBg()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-        Hapus
-      </button>
-    </div>
-    <div class="lyr-bg-tip">Foto disimpan ke akunmu dan tetap ada<br>saat kamu login di perangkat lain</div>
-    <div class="mbtns">
-      <button class="btn-s" onclick="closeLyrBgModal()">Tutup</button>
-      <button class="btn-p" id="lyr-bg-save-btn" onclick="saveLyrBg()" style="display:none">Terapkan</button>
-    </div>
-  </div>
-</div>
-
-<!-- Style Picker Modal -->
-<div id="style-picker-modal" class="modal-bg" style="display:none">
-  <div class="modal">
-    <h3>✨ Gaya Teks Lirik</h3>
-    <p>Pilih tampilan lirik yang kamu suka</p>
-    <div class="style-picker-grid">
-      <div class="style-picker-item selected" id="style-classic" onclick="selectLyrStyle('classic')">
-        <div class="style-picker-icon">📄</div>
-        <div class="style-picker-name">Klasik</div>
-        <div class="style-picker-desc">Tampilan standar, baris per baris</div>
-      </div>
-      <div class="style-picker-item" id="style-kinetic" onclick="selectLyrStyle('kinetic')">
-        <div class="style-picker-icon">🌊</div>
-        <div class="style-picker-name">Kinetic</div>
-        <div class="style-picker-desc">Teks bergerak dinamis, kata per kata</div>
-      </div>
-    </div>
-    <div class="mbtns">
-      <button class="btn-s" onclick="closeStylePicker()">Tutup</button>
-    </div>
-  </div>
-</div>
-
-<!-- Notification Overlay -->
-<div id="notif-overlay" onclick="closeNotifPanel()"></div>
-
-<!-- Notification Panel -->
-<div id="notif-panel">
-  <div class="notif-panel-head">
-    <div class="notif-panel-title">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-      Notifikasi
-    </div>
-    <div class="notif-panel-actions">
-      <button class="notif-clear-btn" onclick="clearAllNotifications()">Hapus semua</button>
-      <button class="notif-close-btn" onclick="closeNotifPanel()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-      </button>
-    </div>
-  </div>
-  <div id="notif-list">
-    <div class="notif-empty">
-      <span>🔔</span>
-      Belum ada notifikasi.<br>Saat ada yang like atau<br>komentar playlistmu,<br>akan muncul di sini.
-    </div>
-  </div>
 </div>
 
 <div id="toast"></div>
@@ -1852,7 +859,6 @@ const WORKER = 'https://fancy-band-d65b.alpinofficial26.workers.dev';
 let YTP = null;
 let playing = false, cur = 0, tot = 0, raf = null;
 let lyrCache = {}, lyrs = [], curTrack = null;
-let lyrOffset = 0; // detik offset kalibrasi lirik (+ = majukan, - = mundurkan)
 let curQueue = []; // lagu yang sedang dalam antrian putar
 
 // Multi-playlist: { [id]: { id, name, cover, tracks: [] } }
@@ -1866,7 +872,6 @@ auth.onAuthStateChanged(user => {
     currentUser = user;
     showApp(user);
     loadAllPlaylistsFromCloud();
-    loadPublicFeed();
   } else {
     showAuthWall();
   }
@@ -1877,16 +882,9 @@ function showApp(user) {
   overlay.style.opacity = '0';
   overlay.style.transition = 'opacity .4s';
   setTimeout(() => overlay.style.display = 'none', 400);
-  // Try loading display name from profile DB first
-  db.ref('users/' + user.uid + '/profile/displayName').get().then(snap => {
-    const name = (snap.exists() && snap.val()) ? snap.val() : (user.displayName || user.email.split('@')[0]);
-    document.getElementById('home-greeting').textContent = 'Halo, ' + name + ' 👋';
-    setCloudStatus('synced', 'Tersimpan · ' + name);
-  }).catch(() => {
-    const name = user.displayName || user.email.split('@')[0];
-    document.getElementById('home-greeting').textContent = 'Halo, ' + name + ' 👋';
-    setCloudStatus('synced', 'Tersimpan · ' + name);
-  });
+  const name = user.displayName || user.email.split('@')[0];
+  document.getElementById('home-greeting').textContent = 'Halo, ' + name + ' 👋';
+  setCloudStatus('synced', 'Tersimpan · ' + name);
 }
 
 function showAuthWall() {
@@ -1898,6 +896,7 @@ function showAuthWall() {
       <p>Kamu harus login dengan akun ALVIN untuk mengakses Music Player dan menyimpan playlist kamu.</p>
       <div class="auth-btns">
         <a class="btn-login" href="index.html">Login / Daftar</a>
+        <a class="btn-back" href="reels.html">Kembali</a>
       </div>
     </div>`;
   overlay.style.display = 'flex';
@@ -1937,7 +936,6 @@ function scheduleSave() {
           id: pl.id,
           name: pl.name,
           coverThumb: pl.coverThumb || '',
-          public: pl.public || false,
           tracks: (pl.tracks || []).map(t => ({
             title: t.title || '',
             artist: t.artist || '',
@@ -1950,44 +948,10 @@ function scheduleSave() {
       await getPlRef().set(toSave);
       const count = Object.keys(playlists).length;
       setCloudStatus('synced', 'Tersimpan · ' + count + ' playlist');
-      // Sync any public playlists with updated data
-      syncPublicPlaylists();
     } catch(e) {
       setCloudStatus('', 'Gagal simpan: ' + e.message);
     }
   }, 1200);
-}
-
-// Sync updated playlist data to public_playlists node
-async function syncPublicPlaylists() {
-  if (!currentUser) return;
-  // Ambil foto profil terkini sekali saja
-  const profileSnap = await db.ref('users/' + currentUser.uid + '/profile').get().catch(()=>null);
-  const profileData = profileSnap?.val() || {};
-  const ownerName = profileData.displayName || currentUser.displayName || currentUser.email.split('@')[0];
-  const ownerPhoto = profileData.photoURL || profileData.photoBase64 || currentUser.photoURL || '';
-
-  for (const id in playlists) {
-    const pl = playlists[id];
-    if (!pl.public) continue;
-    const key = currentUser.uid + '_' + id;
-    try {
-      const snap = await db.ref('public_playlists/' + key).get();
-      if (!snap.exists()) continue;
-      await db.ref('public_playlists/' + key).update({
-        name: pl.name || 'Playlist',
-        coverThumb: pl.coverThumb || '',
-        ownerName,
-        ownerPhoto,
-        tracks: (pl.tracks || []).slice(0, 50).map(t => ({
-          title: t.title || '',
-          artist: t.artist || '',
-          thumb: t.thumb || '',
-          _query: t._query || ''
-        }))
-      });
-    } catch(e) { /* silently ignore */ }
-  }
 }
 
 async function loadAllPlaylistsFromCloud() {
@@ -2006,7 +970,6 @@ async function loadAllPlaylistsFromCloud() {
             name: raw.name || 'Playlist',
             coverThumb: raw.coverThumb || '',
             cover: raw.coverThumb || '',
-            public: raw.public || false,
             tracks: Array.isArray(raw.tracks) ? raw.tracks.map(t => ({
               title: t.title || '',
               artist: t.artist || '',
@@ -2049,8 +1012,8 @@ function showSearchView() {
 }
 
 function showPlaylistView(plId) {
+  if (currentPlaylistId !== plId) _reorderMode = false; // reset saat ganti playlist
   currentPlaylistId = plId;
-  currentPubPlaylist = null;
   const pl = playlists[plId];
   if (!pl) return;
   document.getElementById('home-view').classList.remove('active');
@@ -2058,15 +1021,6 @@ function showPlaylistView(plId) {
   document.getElementById('playlist-view').style.display = 'block';
   document.getElementById('nav-home').classList.remove('on');
   document.getElementById('nav-search').classList.remove('on');
-  // Restore edit actions for own playlists
-  document.querySelectorAll('.pv-action-btn').forEach(b => b.style.display = '');
-  const pubBtn = document.getElementById('pv-publish-btn');
-  if (pubBtn) { pubBtn.style.display = ''; updatePublishBtn(!!pl.public); }
-  const covEdit = document.querySelector('.pv-cover-edit');
-  if (covEdit) covEdit.style.display = '';
-  // Hapus owner card jika ada (dari playlist publik sebelumnya)
-  const oldCard = document.getElementById('pv-owner-card');
-  if (oldCard) oldCard.remove();
   renderPlaylistView(plId);
   // highlight sidebar
   renderSidebarPlaylists();
@@ -2074,7 +1028,6 @@ function showPlaylistView(plId) {
 
 function backFromPlaylist() {
   currentPlaylistId = null;
-  currentPubPlaylist = null;
   showHomeView();
 }
 
@@ -2109,17 +1062,11 @@ function deleteCurrentPlaylist() {
   const pl = playlists[currentPlaylistId];
   if (!pl) return;
   if (!confirm('Hapus playlist "' + pl.name + '"? Tindakan ini tidak bisa dibatalkan.')) return;
-  const wasPublic = !!pl.public;
-  const deletedId = currentPlaylistId;
   delete playlists[currentPlaylistId];
   currentPlaylistId = null;
   renderSidebarPlaylists();
   renderHomeGrid();
   scheduleSave();
-  // Remove from public feed if it was published
-  if (wasPublic && currentUser) {
-    db.ref('public_playlists/' + currentUser.uid + '_' + deletedId).remove().catch(() => {});
-  }
   toast('🗑️ Playlist dihapus');
   showHomeView();
 }
@@ -2215,6 +1162,27 @@ function renderAddSongPLList() {
   });
 }
 
+// ─── Reorder Mode State ───────────────────────────────────
+let _reorderMode = false;
+let _dragSrcIdx = null;
+let _touchGhost = null;
+let _touchDragIdx = null;
+
+function toggleReorderMode() {
+  _reorderMode = !_reorderMode;
+  const btn = document.getElementById('pv-reorder-btn');
+  const tracksEl = document.getElementById('pv-tracks');
+  if (btn) btn.classList.toggle('active', _reorderMode);
+  if (tracksEl) tracksEl.classList.toggle('reorder-mode', _reorderMode);
+  if (_reorderMode) {
+    toast('🔀 Mode atur urutan aktif — seret lagu untuk mengubah urutan');
+  } else {
+    toast('✅ Urutan lagu disimpan');
+    scheduleSave();
+  }
+  if (currentPlaylistId) renderPlaylistView(currentPlaylistId);
+}
+
 // ─── Playlist View Render ─────────────────────────────────
 function renderPlaylistView(plId) {
   const pl = playlists[plId];
@@ -2232,54 +1200,171 @@ function renderPlaylistView(plId) {
   document.getElementById('pv-title').textContent = pl.name;
   document.getElementById('pv-sub').textContent = pl.tracks.length + ' lagu';
 
+  // Sync reorder button state
+  const btn = document.getElementById('pv-reorder-btn');
+  if (btn) btn.classList.toggle('active', _reorderMode);
+
   // Track list
   const c = document.getElementById('pv-tracks');
-  if (!pl.tracks.length) {
+  if (pl.tracks.length === 0) {
+    _reorderMode = false;
+    if (btn) btn.classList.remove('active');
     c.innerHTML = `<div class="pv-empty"><div class="pv-empty-icon">🎵</div>Belum ada lagu di playlist ini.<br>Klik "Tambah Lagu" untuk mulai menambahkan.</div>`;
     return;
   }
+
+  if (_reorderMode) c.classList.add('reorder-mode');
+  else c.classList.remove('reorder-mode');
+
   c.innerHTML = `
     <div class="track-list-header">
       <div class="tl-h">#</div>
       <div class="tl-h">Judul</div>
       <div class="tl-h">Artis</div>
-      <div class="tl-h r">Durasi</div>
-    </div>`;
+      <div class="tl-h r">${_reorderMode ? '<span style="color:var(--green);font-size:.65rem">SERET UNTUK ATUR</span>' : 'Hapus'}</div>
+    </div>
+    <div class="reorder-hint">☰ Tahan &amp; seret baris untuk mengubah urutan</div>`;
+
   pl.tracks.forEach((t, i) => {
     const isPlaying = curTrack && curTrack._query === t._query;
     const row = document.createElement('div');
     row.className = 'track-row' + (isPlaying ? ' playing' : '');
+    row.dataset.idx = i;
+    row.draggable = _reorderMode;
     const src = t.photo || t.thumb;
     row.innerHTML = `
-      <div class="tr-num">${i+1}</div>
+      <div class="tr-num">${isPlaying ? '<svg viewBox="0 0 24 24" width="14" height="14" fill="var(--green)"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3z"/></svg>' : (i+1)}</div>
       <div class="tr-info">
         ${src ? `<img class="tr-thumb" src="${esc(src)}" onerror="this.style.display='none'">` : `<div class="tr-thumb-ph">🎵</div>`}
-        <div class="tr-text"><div class="tr-title">${esc(t.title)}</div></div>
+        <div class="tr-text">
+          <div class="tr-title">${esc(t.title)}</div>
+          <div class="tr-artist" style="font-size:.7rem;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(t.artist)}</div>
+        </div>
       </div>
       <div class="tr-album" style="font-size:.75rem;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(t.artist)}</div>
-      <div class="tr-dur">
-        <button class="tr-del" title="Hapus dari playlist" onclick="removeTrackFromPlaylist('${plId}',${i}); event.stopPropagation();">
+      <div class="tr-dur" style="display:flex;align-items:center;justify-content:flex-end;gap:6px;">
+        ${_reorderMode ? `
+        <button class="tr-drag" title="Seret untuk mengatur urutan">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 15h18v-2H3v2zm0 4h18v-2H3v2zm0-8h18V9H3v2zm0-6v2h18V5H3z"/></svg>
+        </button>` : `
+        <button class="tr-del" title="Hapus dari playlist">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-        </button>
+        </button>`}
       </div>
     `;
+
+    // Click to play (not in reorder mode)
     row.addEventListener('click', (e) => {
+      if (_reorderMode) return;
       if (e.target.closest('.tr-del')) return;
-      // Set queue sebagai semua track di playlist ini
       curQueue = pl.tracks.map((tr, idx) => ({ ...tr, _plIdx: idx }));
       loadPlay(t, plId);
     });
+
+    // Delete
+    const delBtn = row.querySelector('.tr-del');
+    if (delBtn) {
+      delBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        removeTrackFromPlaylist(plId, i);
+      });
+    }
+
+    // ── Drag events (desktop) ──
+    if (_reorderMode) {
+      row.addEventListener('dragstart', (e) => {
+        _dragSrcIdx = i;
+        row.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', i);
+      });
+      row.addEventListener('dragend', () => {
+        row.classList.remove('dragging');
+        c.querySelectorAll('.track-row').forEach(r => r.classList.remove('drag-over'));
+      });
+      row.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        c.querySelectorAll('.track-row').forEach(r => r.classList.remove('drag-over'));
+        row.classList.add('drag-over');
+      });
+      row.addEventListener('dragleave', () => {
+        row.classList.remove('drag-over');
+      });
+      row.addEventListener('drop', (e) => {
+        e.preventDefault();
+        row.classList.remove('drag-over');
+        const srcIdx = _dragSrcIdx;
+        const dstIdx = parseInt(row.dataset.idx);
+        if (srcIdx === null || srcIdx === dstIdx) return;
+        _reorderTrack(plId, srcIdx, dstIdx);
+      });
+
+      // ── Touch events (mobile) ──
+      row.addEventListener('touchstart', (e) => {
+        _touchDragIdx = i;
+        const touch = e.touches[0];
+        if (!_touchGhost) {
+          _touchGhost = document.createElement('div');
+          _touchGhost.className = 'touch-drag-ghost';
+          document.body.appendChild(_touchGhost);
+        }
+        _touchGhost.textContent = '☰ ' + t.title;
+        _touchGhost.style.display = 'block';
+        _touchGhost.style.left = (touch.clientX + 14) + 'px';
+        _touchGhost.style.top = (touch.clientY - 20) + 'px';
+        row.classList.add('dragging');
+      }, {passive: true});
+      row.addEventListener('touchmove', (e) => {
+        if (_touchDragIdx === null) return;
+        const touch = e.touches[0];
+        if (_touchGhost) {
+          _touchGhost.style.left = (touch.clientX + 14) + 'px';
+          _touchGhost.style.top = (touch.clientY - 20) + 'px';
+        }
+        // Find target row under finger
+        const el = document.elementFromPoint(touch.clientX, touch.clientY);
+        const targetRow = el ? el.closest('.track-row') : null;
+        c.querySelectorAll('.track-row').forEach(r => r.classList.remove('drag-over'));
+        if (targetRow) targetRow.classList.add('drag-over');
+      }, {passive: true});
+      row.addEventListener('touchend', (e) => {
+        if (_touchDragIdx === null) return;
+        c.querySelectorAll('.track-row').forEach(r => r.classList.remove('dragging', 'drag-over'));
+        if (_touchGhost) { _touchGhost.style.display = 'none'; }
+        const touch = e.changedTouches[0];
+        const el = document.elementFromPoint(touch.clientX, touch.clientY);
+        const targetRow = el ? el.closest('.track-row') : null;
+        if (targetRow && targetRow.dataset.idx !== undefined) {
+          const dstIdx = parseInt(targetRow.dataset.idx);
+          if (_touchDragIdx !== dstIdx) _reorderTrack(plId, _touchDragIdx, dstIdx);
+        }
+        _touchDragIdx = null;
+      }, {passive: true});
+    }
+
     c.appendChild(row);
   });
 }
 
+function _reorderTrack(plId, fromIdx, toIdx) {
+  const pl = playlists[plId];
+  if (!pl) return;
+  const tracks = pl.tracks;
+  if (fromIdx < 0 || fromIdx >= tracks.length || toIdx < 0 || toIdx >= tracks.length) return;
+  const [moved] = tracks.splice(fromIdx, 1);
+  tracks.splice(toIdx, 0, moved);
+  // Update curQueue jika playlist ini sedang aktif
+  if (curQueue.length && currentPlaylistId === plId) {
+    curQueue = [...tracks];
+  }
+  scheduleSave();
+  renderPlaylistView(plId);
+  toast('↕️ Urutan lagu diperbarui');
+}
+
 // ─── Play All ─────────────────────────────────────────────
 function playAllPlaylist() {
-  // Handle public playlist (milik user lain)
-  if (!currentPlaylistId && currentPubPlaylist) {
-    playPublicPlaylist(currentPubPlaylist);
-    return;
-  }
   if (!currentPlaylistId) return;
   const pl = playlists[currentPlaylistId];
   if (!pl || !pl.tracks.length) { toast('⚠️ Playlist kosong'); return; }
@@ -2454,42 +1539,6 @@ function tick(){
 }
 
 function ft(s){ if(!s||isNaN(s))return'0:00'; return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'); }
-
-// ─── Lyric Offset (Kalibrasi Sinkronisasi) ───────────────
-function adjustLyrOffset(delta){
-  lyrOffset = Math.round((lyrOffset + delta) * 10) / 10;
-  // Batasi range -15s sampai +15s
-  lyrOffset = Math.max(-15, Math.min(15, lyrOffset));
-  const label = (lyrOffset >= 0 ? '+' : '') + lyrOffset.toFixed(1) + 's';
-  const sideVal = document.getElementById('lyr-offset-val');
-  const fsVal   = document.getElementById('fs-offset-val');
-  if (sideVal) sideVal.textContent = label;
-  if (fsVal)   fsVal.textContent   = label;
-  // Warna feedback: hijau jika ada offset, putih/muted jika 0
-  const col = lyrOffset !== 0 ? 'var(--green)' : '';
-  if (sideVal) sideVal.style.color = lyrOffset !== 0 ? 'var(--green)' : 'var(--sub)';
-  if (fsVal)   fsVal.style.color   = lyrOffset !== 0 ? '#7df' : 'rgba(255,255,255,0.85)';
-  // Force re-render lyric panel sekarang
-  syncLyr(cur);
-}
-
-function toggleOffsetBar(){
-  const wrap = document.getElementById('lyr-offset-wrap');
-  if(!wrap) return;
-  const isOpen = wrap.style.display === 'flex';
-  wrap.style.display = isOpen ? 'none' : 'flex';
-  const btn = document.getElementById('lyr-offset-toggle');
-  if(btn){ btn.style.color = isOpen ? 'var(--muted)' : 'var(--green)'; btn.style.background = isOpen ? 'none' : 'var(--green-dim)'; }
-}
-
-// Reset offset UI saat lagu baru
-function resetOffsetUI(){
-  lyrOffset = 0;
-  const sideVal = document.getElementById('lyr-offset-val');
-  const fsVal   = document.getElementById('fs-offset-val');
-  if(sideVal){ sideVal.textContent='0.0s'; sideVal.style.color='var(--sub)'; }
-  if(fsVal){   fsVal.textContent='0.0s';   fsVal.style.color='rgba(255,255,255,0.85)'; }
-}
 function updProg(){
   document.getElementById('t-cur').textContent=ft(cur);
   document.getElementById('t-tot').textContent=ft(tot);
@@ -2568,7 +1617,7 @@ async function resolveVid(query){
 }
 
 async function loadPlay(track, fromPlId){
-  cancelAnimationFrame(raf); playing=false; cur=0; tot=0; curTrack=track; lyrs=[]; resetOffsetUI();
+  cancelAnimationFrame(raf); playing=false; cur=0; tot=0; curTrack=track; lyrs=[];
   // Update now playing in playlist view
   if (fromPlId && currentPlaylistId === fromPlId) renderPlaylistView(fromPlId);
 
@@ -2593,7 +1642,7 @@ async function loadPlay(track, fromPlId){
   // Langsung buka fullscreen lyrics
   openFS();
 
-  const searchQ=`${track.artist} ${track.title} official audio`; toast('🔍 Mencari video...');
+  const searchQ=track._query+' official audio'; toast('🔍 Mencari video...');
   const cl=cleanT(track.title);
   const [videoId,lines]=await Promise.all([resolveVid(searchQ),fetchLyr(cl,track.artist)]);
   if(videoId){
@@ -2601,7 +1650,7 @@ async function loadPlay(track, fromPlId){
     await initPlayer(videoId).catch(e=>{console.error('initPlayer error:',e);toast('⚠️ Gagal memuat video, coba lagu lain');});
   }else{
     toast('⚠️ Mencoba fallback...');
-    const fallbackId=await resolveVid(`${track.artist} ${track.title}`);
+    const fallbackId=await resolveVid(track._query);
     if(fallbackId){ await initPlayer(fallbackId).catch(()=>toast('⚠️ Gagal memuat video')); }
     else{ toast('❌ Video tidak ditemukan. Coba lagu lain.'); }
   }
@@ -2632,14 +1681,7 @@ async function fetchLyr(title,artist){
   }catch(e){lyrCache[k]=[];return [];}
 }
 function pSynced(raw){
-  return raw.split('\n').map(l=>{
-    const m=l.match(/\[(\d+):(\d+\.?\d*)\](.*)/);
-    if(!m)return null;
-    const text=m[3].trim();
-    // Baris instrumental: teks kosong, hanya ♪/♫, atau tanda musik
-    const isInstrumental = !text || /^[♪♫\s]*$/.test(text);
-    return {time:parseInt(m[1])*60+parseFloat(m[2]), text: isInstrumental ? '' : text, instrumental: isInstrumental};
-  }).filter(Boolean);
+  return raw.split('\n').map(l=>{const m=l.match(/\[(\d+):(\d+\.?\d*)\](.*)/);return m?{time:parseInt(m[1])*60+parseFloat(m[2]),text:m[3].trim()}:null;}).filter(Boolean).filter(l=>l.text);
 }
 function pPlain(raw){
   let t=0;
@@ -2647,25 +1689,13 @@ function pPlain(raw){
 }
 function syncLyr(ct){
   const el=document.getElementById('lyr-lines'); if(!el||!lyrs.length)return;
-  const t=ct+lyrOffset;
   let idx=0;
-  for(let i=0;i<lyrs.length;i++){if(t>=lyrs[i].time)idx=i;else break;}
+  for(let i=0;i<lyrs.length;i++){if(ct>=lyrs[i].time)idx=i;else break;}
   el.innerHTML='';
   lyrs.forEach((l,i)=>{
     const d=document.createElement('div');
-    const isActive=i===idx, isPast=i<idx;
-    d.className='ll '+(isActive?'active':isPast?'past':'upcoming');
-    if(l.instrumental){
-      d.className+=' lyr-instrumental';
-      const durSec=i<lyrs.length-1?lyrs[i+1].time-l.time:4;
-      const dotCount=Math.min(Math.max(Math.round(durSec/1.2),2),6);
-      let dots='';
-      for(let k=0;k<dotCount;k++) dots+=`<span class="inst-dot" style="animation-delay:${k*0.22}s"></span>`;
-      d.innerHTML=`<span class="inst-icon">🎵</span><span class="inst-dots">${dots}</span>`;
-    } else {
-      d.textContent=l.text;
-    }
-    d.addEventListener('click',()=>{if(YTP)YTP.seekTo(l.time);}); el.appendChild(d);
+    d.className='ll '+(i===idx?'active':i<idx?'past':'upcoming');
+    d.textContent=l.text; d.addEventListener('click',()=>{if(YTP)YTP.seekTo(l.time);}); el.appendChild(d);
   });
   const act=el.querySelectorAll('.ll')[idx];
   if(act)el.scrollTo({top:act.offsetTop-el.offsetHeight/2+act.offsetHeight/2,behavior:'smooth'});
@@ -2758,1669 +1788,21 @@ function closeFS(){document.getElementById('fs-lyr').classList.remove('open');}
 function updateFSLyr(){
   const el=document.getElementById('fs-lyr-scroll');
   if(!lyrs.length){el.innerHTML='<div class="lyr-empty" style="color:rgba(255,255,255,0.4);padding-top:80px"><i>😔</i>Lirik tidak tersedia</div>';return;}
-  const t=cur+lyrOffset;
   let idx=0;
-  for(let i=0;i<lyrs.length;i++){if(t>=lyrs[i].time)idx=i;else break;}
+  for(let i=0;i<lyrs.length;i++){if(cur>=lyrs[i].time)idx=i;else break;}
   el.innerHTML='';
-  lyrs.forEach((l,i)=>{
-    const d=document.createElement('div');
-    d.className='fs-ll '+(i===idx?'active':i<idx?'past':'');
-    if(l.instrumental){
-      d.className+=' lyr-instrumental';
-      const durSec=i<lyrs.length-1?lyrs[i+1].time-l.time:4;
-      const dotCount=Math.min(Math.max(Math.round(durSec/1.2),2),6);
-      let dots='';
-      for(let k=0;k<dotCount;k++) dots+=`<span class="inst-dot" style="animation-delay:${k*0.22}s"></span>`;
-      d.innerHTML=`<span class="inst-icon">🎵</span><span class="inst-dots">${dots}</span>`;
-    } else {
-      d.textContent=l.text;
-    }
-    d.addEventListener('click',()=>{if(YTP)YTP.seekTo(l.time);}); el.appendChild(d);
-  });
+  lyrs.forEach((l,i)=>{const d=document.createElement('div');d.className='fs-ll '+(i===idx?'active':i<idx?'past':'');d.textContent=l.text;d.addEventListener('click',()=>{if(YTP)YTP.seekTo(l.time);});el.appendChild(d);});
   const act=el.querySelectorAll('.fs-ll')[idx];
   if(act)el.scrollTo({top:act.offsetTop-el.offsetHeight/2+act.offsetHeight/2,behavior:'smooth'});
 }
 function updateFSProg(){document.getElementById('fs-t-cur').textContent=ft(cur);document.getElementById('fs-t-tot').textContent=ft(tot);document.getElementById('fs-prog-fill').style.width=(tot?(cur/tot)*100:0)+'%';}
 function updateFSPB(p){document.getElementById('fs-ico-play').style.display=p?'none':'block';document.getElementById('fs-ico-pause').style.display=p?'block':'none';}
 
-document.getElementById('fs-back').addEventListener('click', () => {
-  // Jika sedang pure mode, keluar pure mode dulu, bukan tutup fullscreen
-  if (document.getElementById('fs-lyr').classList.contains('pure-mode')) {
-    togglePureMode();
-    return;
-  }
-  closeFS();
-});
+document.getElementById('fs-back').addEventListener('click',closeFS);
 document.getElementById('fs-btn-play').addEventListener('click',()=>{if(!curTrack||!YTP)return;try{playing?YTP.pauseVideo():YTP.playVideo();}catch(e){}});
 document.getElementById('fs-btn-next').addEventListener('click',playNext);
 document.getElementById('fs-btn-prev').addEventListener('click',playPrev);
 document.getElementById('fs-prog-track').addEventListener('click',e=>{if(!YTP||!tot)return;const r=e.currentTarget.getBoundingClientRect();YTP.seekTo(((e.clientX-r.left)/r.width)*tot);});
-
-// ─── PURE LYRICS MODE ─────────────────────────────────────
-let _pureModeActive = false;
-
-function togglePureMode() {
-  const fsEl = document.getElementById('fs-lyr');
-  const btn  = document.getElementById('fs-pure-btn');
-  _pureModeActive = !_pureModeActive;
-
-  if (_pureModeActive) {
-    fsEl.classList.add('pure-mode');
-    // Ikon berubah jadi "compress" (keluar fullscreen)
-    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-      <path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/>
-      <path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/>
-    </svg>`;
-    btn.title = 'Keluar mode penuh';
-    // Sembunyikan tombol back sementara (digantikan oleh hint)
-    document.getElementById('fs-back').style.opacity = '0';
-    document.getElementById('fs-back').style.pointerEvents = 'none';
-  } else {
-    fsEl.classList.remove('pure-mode');
-    // Kembalikan ikon expand
-    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-      <path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/>
-      <path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
-    </svg>`;
-    btn.title = 'Mode lirik penuh';
-    document.getElementById('fs-back').style.opacity = '';
-    document.getElementById('fs-back').style.pointerEvents = '';
-  }
-}
-
-document.getElementById('fs-pure-btn').addEventListener('click', togglePureMode);
-
-// Matikan pure mode saat fullscreen ditutup
-const _origCloseFS = closeFS;
-closeFS = function() {
-  if (_pureModeActive) {
-    _pureModeActive = false;
-    document.getElementById('fs-lyr').classList.remove('pure-mode');
-    document.getElementById('fs-back').style.opacity = '';
-    document.getElementById('fs-back').style.pointerEvents = '';
-  }
-  _origCloseFS();
-};
-
-// ─── GAYA TEKS / KINETIC TYPOGRAPHY ──────────────────────
-let _lyrStyle = localStorage.getItem('lyrStyle') || 'classic'; // 'classic' | 'kinetic'
-let _kineticIdx = -1;
-let _kWordTimer = null;
-let _kBeatTimer = null;
-let _kDotTimer = null;
-let _kRafId = null;
-let _kWordTimestamps = [];
-let _kWordLitIdx = -1;
-
-function openStylePicker() {
-  document.getElementById('style-picker-modal').style.display = 'flex';
-  document.getElementById('style-classic').classList.toggle('selected', _lyrStyle === 'classic');
-  document.getElementById('style-kinetic').classList.toggle('selected', _lyrStyle === 'kinetic');
-}
-function closeStylePicker() {
-  document.getElementById('style-picker-modal').style.display = 'none';
-}
-function selectLyrStyle(style) {
-  _lyrStyle = style;
-  localStorage.setItem('lyrStyle', style);
-  document.getElementById('style-classic').classList.toggle('selected', style === 'classic');
-  document.getElementById('style-kinetic').classList.toggle('selected', style === 'kinetic');
-  // Update UI
-  const fsEl = document.getElementById('fs-lyr');
-  const styleBtn = document.getElementById('fs-style-btn');
-  const sideBtn = document.getElementById('lyr-style-btn');
-  if (style === 'kinetic') {
-    fsEl.classList.add('kinetic-mode');
-    if (styleBtn) styleBtn.classList.add('active');
-    if (sideBtn) sideBtn.classList.add('active');
-    _kineticIdx = -1;
-    _kWordLitIdx = -1;
-    _kWordTimestamps = [];
-    if (lyrs.length) updateKinetic();
-  } else {
-    fsEl.classList.remove('kinetic-mode');
-    if (styleBtn) styleBtn.classList.remove('active');
-    if (sideBtn) sideBtn.classList.remove('active');
-    clearKineticTimers();
-    updateFSLyr();
-  }
-  closeStylePicker();
-}
-
-function clearKineticTimers() {
-  if (_kWordTimer) clearTimeout(_kWordTimer);
-  if (_kBeatTimer) clearTimeout(_kBeatTimer);
-  if (_kDotTimer) clearTimeout(_kDotTimer);
-  if (_kRafId) { cancelAnimationFrame(_kRafId); _kRafId = null; }
-}
-
-// ─── Sistem baru: word-by-word sync via requestAnimationFrame ───
-
-function updateKinetic() {
-  if (_lyrStyle !== 'kinetic' || !lyrs.length) return;
-  const t = cur + lyrOffset;
-  let idx = 0;
-  for (let i = 0; i < lyrs.length; i++) { if (t >= lyrs[i].time) idx = i; else break; }
-  if (idx === _kineticIdx) return;
-  _kineticIdx = idx;
-  renderKineticLines(idx);
-}
-
-function renderKineticLines(idx) {
-  const prevEl  = document.getElementById('k-prev');
-  const nextEl  = document.getElementById('k-next');
-  const stage   = document.getElementById('k-word-stage');
-  if (!prevEl || !nextEl || !stage) return;
-
-  const prevLine = idx > 0 ? (lyrs[idx-1].instrumental ? '🎵' : lyrs[idx-1].text) : '';
-  const curLine  = lyrs[idx].text;
-  const nextLine = idx < lyrs.length-1 ? (lyrs[idx+1].instrumental ? '🎵' : lyrs[idx+1].text) : '';
-
-  // Baris konteks
-  prevEl.textContent = prevLine;
-  nextEl.textContent = nextLine;
-
-  // Hitung durasi baris aktif
-  const lineStart = lyrs[idx].time;
-  const lineEnd   = idx < lyrs.length - 1 ? lyrs[idx + 1].time : lineStart + 4;
-  const lineDur   = Math.max(lineEnd - lineStart, 0.5);
-
-  // Motion blur flash
-  const overlay = document.getElementById('k-blur-overlay');
-  if (overlay) { overlay.classList.remove('flash'); void overlay.offsetWidth; overlay.classList.add('flash'); }
-
-  // Buat elemen kata di stage — semuanya mulai tersembunyi
-  stage.innerHTML = '';
-  stage.classList.remove('k-stage-enter');
-
-  // Baris instrumental: tampilkan ikon animasi di stage
-  if (lyrs[idx].instrumental) {
-    const dotCount = Math.min(Math.max(Math.round(lineDur/1.2),2),5);
-    stage.innerHTML = `<span class="k-inst-label">🎵</span>`;
-    for(let k=0;k<dotCount;k++){
-      const sp=document.createElement('span');
-      sp.className='k-word k-inst-dot-large';
-      sp.style.animationDelay=(k*0.22)+'s';
-      sp.textContent='♪';
-      stage.appendChild(sp);
-    }
-    _kWordTimestamps = [];
-    void stage.offsetWidth;
-    stage.classList.add('k-stage-enter');
-    buildProgressDots(dotCount);
-    if(_kRafId) cancelAnimationFrame(_kRafId);
-    return;
-  }
-
-  const words = curLine.trim().split(/\s+/).filter(Boolean);
-  _kWordTimestamps = [];
-  _kWordLitIdx = -1;
-
-  // Distribusi timestamp berdasarkan bobot panjang karakter kata.
-  // Kata lebih panjang = waktu lebih banyak.
-  // Sisakan 8% di awal (jeda natural masuk baris) dan 12% di akhir
-  // (napas / jeda ke baris berikutnya).
-  const LEAD   = 0.08;
-  const TRAIL  = 0.12;
-  const usable = lineDur * (1 - LEAD - TRAIL);
-
-  const charLens   = words.map(w => Math.max(w.replace(/\W/g, '').length, 1));
-  const totalChars = charLens.reduce((a, b) => a + b, 0);
-
-  let cumChars = 0;
-  words.forEach((w, i) => {
-    const sp = document.createElement('span');
-    sp.className = 'k-word';
-    sp.textContent = w;
-    stage.appendChild(sp);
-
-    // Offset proporsional karakter kumulatif
-    const tWord = lineStart + lineDur * LEAD + (cumChars / totalChars) * usable;
-    _kWordTimestamps.push({ t: tWord, el: sp });
-    cumChars += charLens[i];
-  });
-
-  // Animasi masuk stage
-  void stage.offsetWidth;
-  stage.classList.add('k-stage-enter');
-
-  // Progress dots
-  buildProgressDots(words.length);
-
-  // Mulai rAF loop (restart jika sudah jalan)
-  if (_kRafId) cancelAnimationFrame(_kRafId);
-  _kRafWordLoop();
-}
-
-function _kRafWordLoop() {
-  if (_lyrStyle !== 'kinetic') return;
-
-  const nowSec = cur + lyrOffset;
-
-  for (let i = 0; i < _kWordTimestamps.length; i++) {
-    const wt = _kWordTimestamps[i];
-    if (nowSec >= wt.t && i > _kWordLitIdx) {
-      // Tandai kata sebelumnya sebagai past
-      if (_kWordLitIdx >= 0) {
-        const prev = _kWordTimestamps[_kWordLitIdx].el;
-        prev.classList.remove('k-word-lit', 'k-word-enter');
-        prev.classList.add('k-word-past');
-      }
-
-      // Cek apakah kata ini sudah "jauh" terlewat (>0.4 detik terlambat)
-      // Kalau iya, langsung past tanpa animasi supaya tidak menumpuk
-      const isSkipped = (nowSec - wt.t) > 0.4;
-      if (isSkipped) {
-        wt.el.classList.remove('k-word-enter');
-        wt.el.classList.add('k-word-past');
-      } else {
-        wt.el.classList.remove('k-word-past');
-        wt.el.classList.add('k-word-enter');
-        const el = wt.el;
-        setTimeout(() => {
-          el.classList.remove('k-word-enter');
-          el.classList.add('k-word-lit');
-        }, 180);
-      }
-
-      _kWordLitIdx = i;
-      updateDot(i, _kWordTimestamps.length);
-    }
-  }
-
-  _kRafId = requestAnimationFrame(_kRafWordLoop);
-}
-
-function buildProgressDots(count) {
-  const wrap = document.getElementById('k-progress-dots');
-  if (!wrap) return;
-  const n = Math.min(count, 8);
-  wrap.innerHTML = '';
-  for (let i = 0; i < n; i++) {
-    const d = document.createElement('div');
-    d.className = 'k-dot';
-    d.id = 'k-dot-' + i;
-    wrap.appendChild(d);
-  }
-}
-
-function updateDot(wordIdx, total) {
-  const n = Math.min(total, 8);
-  const dotIdx = Math.round((wordIdx / Math.max(total - 1, 1)) * (n - 1));
-  for (let i = 0; i < n; i++) {
-    const d = document.getElementById('k-dot-' + i);
-    if (d) d.classList.toggle('lit', i === dotIdx);
-  }
-}
-
-// Hook into existing lyric update loop
-const _origUpdateFSLyr = updateFSLyr;
-updateFSLyr = function() {
-  if (_lyrStyle === 'kinetic') {
-    updateKinetic();
-    updateFSProg(); // keep progress bar updated
-    return;
-  }
-  _origUpdateFSLyr();
-};
-
-// Apply saved style on FS open
-const _origOpenFS = openFS;
-openFS = function() {
-  _origOpenFS();
-  const fsEl = document.getElementById('fs-lyr');
-  const styleBtn = document.getElementById('fs-style-btn');
-  const sideBtn = document.getElementById('lyr-style-btn');
-  if (_lyrStyle === 'kinetic') {
-    fsEl.classList.add('kinetic-mode');
-    if (styleBtn) styleBtn.classList.add('active');
-    if (sideBtn) sideBtn.classList.add('active');
-    _kineticIdx = -1;
-    _kWordLitIdx = -1;
-    _kWordTimestamps = [];
-    if (lyrs.length) updateKinetic();
-  } else {
-    fsEl.classList.remove('kinetic-mode');
-    if (styleBtn) styleBtn.classList.remove('active');
-    if (sideBtn) sideBtn.classList.remove('active');
-  }
-};
-
-// Clean up timers on close
-const _origCloseFSKinetic = closeFS;
-closeFS = function() {
-  clearKineticTimers();
-  _origCloseFSKinetic();
-};
-
-// ─── PUBLIC PLAYLISTS FEED ────────────────────────────────
-let pubLikesCache = {}; // { key: likeCount }
-let myLikes = {}; // { key: true }
-
-async function loadPublicFeed() {
-  if (!currentUser) return;
-  const grid = document.getElementById('pub-grid');
-  const rankGrid = document.getElementById('rank-grid');
-  if (grid) grid.innerHTML = '<div class="empty" style="grid-column:1/-1;padding:24px 0;font-size:.82rem;"><i style="font-size:1.8rem">⏳</i><h3>Memuat...</h3></div>';
-
-  try {
-    // Load my likes
-    const likeSnap = await db.ref('public_playlists').get();
-    if (!likeSnap.exists()) {
-      document.getElementById('public-feed-section').style.display = 'none';
-      document.getElementById('top-ranking-section').style.display = 'none';
-      if (grid) grid.innerHTML = '<div class="empty" style="grid-column:1/-1;padding:24px 0;font-size:.82rem;"><i>🌐</i><h3>Belum ada playlist publik</h3></div>';
-      return;
-    }
-
-    // Load my own likes record
-    const myLikeSnap = await db.ref('public_playlists').get();
-    const allData = likeSnap.val();
-
-    // Build array of playlists with like counts
-    const pls = [];
-    for (const key in allData) {
-      const pl = allData[key];
-      if (!pl || !pl.ownerUid) continue;
-      const likes = pl.likes ? Object.keys(pl.likes).length : 0;
-      const iLiked = pl.likes && pl.likes[currentUser.uid] === true;
-      const commentCount = pl.comments ? Object.keys(pl.comments).length : 0;
-      pls.push({ key, ...pl, likeCount: likes, iLiked, commentCount });
-    }
-
-    if (!pls.length) {
-      document.getElementById('public-feed-section').style.display = 'none';
-      document.getElementById('top-ranking-section').style.display = 'none';
-      return;
-    }
-
-    document.getElementById('public-feed-section').style.display = 'block';
-    document.getElementById('top-ranking-section').style.display = 'block';
-
-    // Sort by likes for ranking
-    const sorted = [...pls].sort((a,b) => b.likeCount - a.likeCount);
-
-    // Render Top Ranking (top 5)
-    renderRanking(sorted.slice(0, 5));
-
-    // Render public grid (all, sorted by recency if possible)
-    renderPublicGrid(pls);
-
-  } catch(e) {
-    console.error('loadPublicFeed error:', e);
-    if (grid) grid.innerHTML = `<div class="empty" style="grid-column:1/-1;font-size:.82rem;color:var(--sub)">❌ Gagal memuat: ${esc(e.message)}</div>`;
-  }
-}
-
-function renderRanking(items) {
-  const c = document.getElementById('rank-grid');
-  if (!c) return;
-  c.innerHTML = '';
-  items.forEach((pl, i) => {
-    const numClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-    const numLabel = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i+1);
-    const div = document.createElement('div');
-    div.className = 'rank-item';
-    div.innerHTML = `
-      <div class="rank-num ${numClass}">${numLabel}</div>
-      <div class="rank-cover">${pl.coverThumb ? `<img src="${esc(pl.coverThumb)}" alt="">` : '🎵'}</div>
-      <div class="rank-info">
-        <div class="rank-name">${esc(pl.name || 'Playlist')}</div>
-        <div class="rank-owner">oleh ${esc(pl.ownerName || 'Anonim')} · ${(pl.tracks||[]).length} lagu</div>
-      </div>
-      <div class="rank-likes">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-        ${pl.likeCount}
-      </div>
-    `;
-    div.addEventListener('click', () => openPublicPlaylist(pl));
-    c.appendChild(div);
-  });
-}
-
-function renderPublicGrid(pls) {
-  const c = document.getElementById('pub-grid');
-  if (!c) return;
-  c.innerHTML = '';
-
-  // Show other users' playlists first, then own published
-  const others = pls.filter(p => p.ownerUid !== currentUser.uid);
-  const mine = pls.filter(p => p.ownerUid === currentUser.uid);
-  const sorted = [...others, ...mine];
-
-  if (!sorted.length) {
-    c.innerHTML = '<div class="empty" style="grid-column:1/-1;padding:24px 0;font-size:.82rem;"><i>🌐</i><h3>Belum ada playlist publik</h3></div>';
-    return;
-  }
-
-  sorted.forEach(pl => {
-    const card = document.createElement('div');
-    card.className = 'pub-card';
-    const isOwn = pl.ownerUid === currentUser.uid;
-    card.innerHTML = `
-      <div class="pub-cover-wrap">
-        ${pl.coverThumb
-          ? `<img class="pub-card-img" src="${esc(pl.coverThumb)}" alt="cover" onerror="this.style.display='none'">`
-          : `<div class="pub-card-cover">🎵</div>`}
-        <div class="pub-cover-ov">
-          <svg viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
-        </div>
-      </div>
-      <div class="pub-card-body">
-        <div class="pub-card-name">${esc(pl.name || 'Playlist')}</div>
-        <div class="pub-card-bottom">
-          <span class="pub-card-owner">
-            ${isOwn
-              ? `<svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor"><path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v2h20v-2c0-3.3-6.7-5-10-5z"/></svg> Milikmu`
-              : `<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg> ${esc(pl.ownerName || 'Anonim')}`}
-          </span>
-          <button class="pub-like-btn ${pl.iLiked ? 'liked' : ''}" data-key="${esc(pl.key)}" onclick="toggleLike(event,'${esc(pl.key)}',${pl.iLiked})">
-            <svg viewBox="0 0 24 24" fill="${pl.iLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-            <span class="like-count-${esc(pl.key)}">${pl.likeCount}</span>
-          </button>
-          <button class="pub-comment-btn" onclick="openCommentModal(event,'${esc(pl.key)}','${esc((pl.name||'Playlist').replace(/'/g,"\\'"))}')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            <span class="comment-count-${esc(pl.key)}">${pl.commentCount ? '💬 '+pl.commentCount : '💬'}</span>
-          </button>
-        </div>
-      </div>
-    `;
-    card.querySelector('.pub-cover-ov').addEventListener('click', e => { e.stopPropagation(); openPublicPlaylist(pl); playPublicPlaylist(pl); });
-    card.addEventListener('click', () => openPublicPlaylist(pl));
-    c.appendChild(card);
-  });
-}
-
-async function toggleLike(e, key, currentlyLiked) {
-  e.stopPropagation();
-  if (!currentUser) return;
-  const likeRef = db.ref('public_playlists/' + key + '/likes/' + currentUser.uid);
-  const btn = e.currentTarget;
-  const countEl = document.querySelector('.like-count-' + key);
-
-  try {
-    if (currentlyLiked) {
-      await likeRef.remove();
-      btn.classList.remove('liked');
-      btn.querySelector('svg').setAttribute('fill','none');
-      if (countEl) countEl.textContent = Math.max(0, parseInt(countEl.textContent) - 1);
-      btn.setAttribute('onclick', `toggleLike(event,'${key}',false)`);
-    } else {
-      await likeRef.set(true);
-      btn.classList.add('liked');
-      btn.querySelector('svg').setAttribute('fill','currentColor');
-      if (countEl) countEl.textContent = parseInt(countEl.textContent) + 1;
-      btn.setAttribute('onclick', `toggleLike(event,'${key}',true)`);
-      toast('❤️ Playlist disukai!');
-
-      // ── Kirim notifikasi ke owner playlist ──
-      try {
-        const plSnap = await db.ref('public_playlists/' + key).get();
-        if (plSnap.exists()) {
-          const plData = plSnap.val();
-          const ownerUid = plData.ownerUid;
-          // Jangan kirim notif ke diri sendiri
-          if (ownerUid && ownerUid !== currentUser.uid) {
-            const profileSnap = await db.ref('users/' + currentUser.uid + '/profile').get().catch(() => null);
-            const profile = profileSnap?.val() || {};
-            const fromName = profile.displayName || currentUser.displayName || currentUser.email.split('@')[0];
-            const fromPhoto = profile.photoURL || profile.photoBase64 || currentUser.photoURL || '';
-            const notif = {
-              type: 'like',
-              fromUid: currentUser.uid,
-              fromName,
-              fromPhoto,
-              playlistKey: key,
-              playlistName: plData.name || 'Playlist',
-              ts: Date.now(),
-              read: false
-            };
-            db.ref('users/' + ownerUid + '/notifications').push(notif).catch(() => {});
-          }
-        }
-      } catch(notifErr) {
-        console.warn('Notif like gagal:', notifErr);
-      }
-    }
-    // Refresh ranking after like change
-    setTimeout(() => loadPublicFeed(), 500);
-  } catch(err) {
-    toast('❌ Gagal: ' + err.message);
-  }
-}
-
-// Open a public playlist (read-only view)
-let currentPubPlaylist = null;
-async function openPublicPlaylist(pl) {
-  currentPubPlaylist = pl;
-  currentPlaylistId = null; // not an owned playlist
-  const tracks = (pl.tracks || []).map(t => ({
-    title: t.title || '',
-    artist: t.artist || '',
-    thumb: t.thumb || '',
-    photo: t.photo || t.thumb || '',
-    _query: t._query || (t.artist + '|||' + t.title + '|||0')
-  }));
-
-  document.getElementById('home-view').classList.remove('active');
-  document.getElementById('search-view').classList.remove('active');
-  document.getElementById('playlist-view').style.display = 'block';
-  document.getElementById('nav-home').classList.remove('on');
-  document.getElementById('nav-search').classList.remove('on');
-
-  // Fill playlist view with public data (read-only)
-  const coverEl = document.getElementById('pv-cover');
-  if (pl.coverThumb) {
-    if (coverEl.tagName !== 'IMG') coverEl.outerHTML = `<img class="pv-cover" id="pv-cover" src="${esc(pl.coverThumb)}" alt="cover">`;
-    else { coverEl.src = pl.coverThumb; }
-  } else {
-    if (coverEl.tagName === 'IMG') coverEl.outerHTML = `<div class="pv-cover-ph" id="pv-cover">🎵</div>`;
-  }
-  document.getElementById('pv-title').textContent = pl.name || 'Playlist';
-  document.getElementById('pv-sub').textContent = `${tracks.length} lagu`;
-
-  // Hide edit actions for other people's playlists
-  const isOwn = pl.ownerUid === currentUser?.uid;
-  document.querySelectorAll('.pv-action-btn').forEach(b => b.style.display = isOwn ? '' : 'none');
-  const pubBtn = document.getElementById('pv-publish-btn');
-  if (pubBtn) pubBtn.style.display = 'none';
-  const covEdit = document.querySelector('.pv-cover-edit');
-  if (covEdit) covEdit.style.display = 'none';
-
-  // ── Owner Profile Card ──
-  // Hapus card lama kalau ada
-  const oldCard = document.getElementById('pv-owner-card');
-  if (oldCard) oldCard.remove();
-
-  // Ambil foto profil owner dari Firebase
-  const ownerCard = document.createElement('div');
-  ownerCard.id = 'pv-owner-card';
-  ownerCard.className = 'pv-owner-card';
-  const ownerName = pl.ownerName || 'Anonim';
-  ownerCard.innerHTML = `
-    <div class="pv-owner-avatar" id="pv-owner-avatar">
-      <svg viewBox="0 0 24 24" fill="currentColor" style="color:var(--sub);width:22px;height:22px"><path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v2h20v-2c0-3.3-6.7-5-10-5z"/></svg>
-    </div>
-    <div class="pv-owner-info">
-      <div class="pv-owner-label">Dibuat oleh</div>
-      <div class="pv-owner-name">${esc(ownerName)}</div>
-    </div>
-    <div class="pv-owner-arrow">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
-    </div>
-  `;
-  // Klik owner card → ke halaman profil owner (jika punya UID)
-  if (pl.ownerUid) {
-    ownerCard.title = 'Lihat profil ' + ownerName;
-    ownerCard.addEventListener('click', () => {
-      window.location.href = 'profile.html?uid=' + encodeURIComponent(pl.ownerUid);
-    });
-    // Load foto profil owner dari DB
-    db.ref('users/' + pl.ownerUid + '/profile').get().then(snap => {
-      if (!snap.exists()) return;
-      const profile = snap.val();
-      const avatarEl = document.getElementById('pv-owner-avatar');
-      if (!avatarEl) return;
-      // Update nama jika lebih baru
-      if (profile.displayName) {
-        const nameEl = ownerCard.querySelector('.pv-owner-name');
-        if (nameEl) nameEl.textContent = profile.displayName;
-      }
-      // Tampilkan foto profil
-      const photoUrl = profile.photoURL || profile.photoBase64 || '';
-      if (photoUrl) {
-        avatarEl.innerHTML = `<img src="${esc(photoUrl)}" alt="${esc(ownerName)}" onerror="this.parentElement.innerHTML='👤'">`;
-      }
-    }).catch(() => {});
-  } else {
-    ownerCard.style.cursor = 'default';
-    const arrowEl = ownerCard.querySelector('.pv-owner-arrow');
-    if (arrowEl) arrowEl.style.display = 'none';
-  }
-
-  // Sisipkan card setelah pv-actions
-  const pvActions = document.querySelector('.pv-actions');
-  if (pvActions) pvActions.after(ownerCard);
-
-  const c = document.getElementById('pv-tracks');
-  if (!tracks.length) {
-    c.innerHTML = `<div class="pv-empty"><div class="pv-empty-icon">🎵</div>Playlist ini kosong.</div>`;
-    return;
-  }
-  c.innerHTML = `<div class="track-list-header"><div class="tl-h">#</div><div class="tl-h">Judul</div><div class="tl-h">Artis</div><div class="tl-h r"></div></div>`;
-  tracks.forEach((t, i) => {
-    const row = document.createElement('div');
-    row.className = 'track-row' + (curTrack && curTrack._query === t._query ? ' playing' : '');
-    const src = t.photo || t.thumb;
-    row.innerHTML = `
-      <div class="tr-num">${i+1}</div>
-      <div class="tr-info">
-        ${src ? `<img class="tr-thumb" src="${esc(src)}" onerror="this.style.display='none'">` : `<div class="tr-thumb-ph">🎵</div>`}
-        <div class="tr-text">
-          <div class="tr-title">${esc(t.title)}</div>
-          <div class="tr-artist" style="font-size:.7rem;color:var(--sub)">${esc(t.artist)}</div>
-        </div>
-      </div>
-      <div class="tr-album">${esc(t.artist)}</div>
-      <div class="tr-dur"></div>
-    `;
-    row.addEventListener('click', () => {
-      curQueue = [...tracks];
-      loadPlay(t, null);
-      // Re-render to update playing highlight
-      setTimeout(() => openPublicPlaylist(pl), 100);
-    });
-    c.appendChild(row);
-  });
-}
-
-function playPublicPlaylist(pl) {
-  const tracks = (pl.tracks || []).map(t => ({
-    title: t.title || '',
-    artist: t.artist || '',
-    thumb: t.thumb || '',
-    photo: t.photo || t.thumb || '',
-    _query: t._query || (t.artist + '|||' + t.title + '|||0')
-  }));
-  if (!tracks.length) { toast('⚠️ Playlist kosong'); return; }
-  curQueue = [...tracks];
-  loadPlay(tracks[0], null);
-}
-
-// ─── PUBLISH / UNPUBLISH ──────────────────────────────────
-async function togglePublishPlaylist() {
-  if (!currentPlaylistId || !currentUser) return;
-  const pl = playlists[currentPlaylistId];
-  if (!pl) return;
-
-  const key = currentUser.uid + '_' + currentPlaylistId;
-  const isPublic = !!pl.public;
-
-  if (isPublic) {
-    // Unpublish
-    if (!confirm('Hapus playlist "' + pl.name + '" dari feed publik?')) return;
-    try {
-      await db.ref('public_playlists/' + key).remove();
-      pl.public = false;
-      scheduleSave();
-      updatePublishBtn(false);
-      toast('🔒 Playlist disembunyikan dari publik');
-      loadPublicFeed();
-    } catch(e) { toast('❌ Gagal: ' + e.message); }
-  } else {
-    // Publish
-    const profileSnap = await db.ref('users/' + currentUser.uid + '/profile').get().catch(()=>null);
-    const profileData = profileSnap?.val() || {};
-    const ownerName = profileData.displayName || currentUser.displayName || currentUser.email.split('@')[0];
-    const ownerPhoto = profileData.photoURL || profileData.photoBase64 || currentUser.photoURL || '';
-    try {
-      await db.ref('public_playlists/' + key).set({
-        name: pl.name || 'Playlist',
-        ownerUid: currentUser.uid,
-        ownerName,
-        ownerPhoto,
-        coverThumb: pl.coverThumb || '',
-        tracks: (pl.tracks || []).slice(0, 50).map(t => ({
-          title: t.title || '',
-          artist: t.artist || '',
-          thumb: t.thumb || '',
-          _query: t._query || ''
-        })),
-        likes: {},
-        publishedAt: Date.now()
-      });
-      pl.public = true;
-      scheduleSave();
-      updatePublishBtn(true);
-      toast('🌐 Playlist dipublikasikan!');
-      loadPublicFeed();
-    } catch(e) { toast('❌ Gagal: ' + e.message); }
-  }
-}
-
-// ─── LYRICS BACKGROUND ────────────────────────────────────
-let _lyrBgData = null;       // base64 dari foto yang dipilih (belum disimpan)
-let _lyrBgSaved = null;      // base64 yang sudah aktif/tersimpan
-let _lyrBgPending = false;
-
-// Load background dari Firebase saat login
-async function loadLyrBgFromCloud() {
-  if (!currentUser) return;
-  try {
-    const snap = await db.ref('users/' + currentUser.uid + '/lyricsBackground').get();
-    if (snap.exists() && snap.val()) {
-      _lyrBgSaved = snap.val();
-      applyLyrBg(_lyrBgSaved);
-    }
-  } catch(e) { console.warn('loadLyrBg error:', e); }
-}
-
-function applyLyrBg(dataUrl) {
-  const fsEl = document.getElementById('fs-lyr');
-  const fsBg = document.getElementById('fs-bg');
-  if (dataUrl) {
-    fsBg.style.backgroundImage = `url('${dataUrl}')`;
-    fsBg.style.backgroundSize = 'cover';
-    fsBg.style.backgroundPosition = 'center';
-    fsBg.style.backgroundRepeat = 'no-repeat';
-    fsEl.classList.add('has-custom-bg');
-  } else {
-    fsBg.style.backgroundImage = '';
-    fsEl.classList.remove('has-custom-bg');
-    // Restore color background
-    pickFSColor();
-  }
-}
-
-function openLyrBgModal() {
-  const modal = document.getElementById('lyr-bg-modal');
-  modal.style.display = 'flex';
-  _lyrBgData = null;
-  _lyrBgPending = false;
-
-  // Tampilkan preview kalau sudah ada foto tersimpan
-  const previewImg = document.getElementById('lyr-bg-preview-img');
-  const previewEmpty = document.getElementById('lyr-bg-preview-empty');
-  const saveBtn = document.getElementById('lyr-bg-save-btn');
-  const resetBtn = document.getElementById('lyr-bg-reset-btn');
-
-  if (_lyrBgSaved) {
-    previewImg.src = _lyrBgSaved;
-    previewImg.style.display = 'block';
-    previewEmpty.style.display = 'none';
-    resetBtn.style.display = 'flex';
-  } else {
-    previewImg.style.display = 'none';
-    previewEmpty.style.display = 'flex';
-    resetBtn.style.display = 'none';
-  }
-  saveBtn.style.display = 'none';
-}
-
-function closeLyrBgModal() {
-  document.getElementById('lyr-bg-modal').style.display = 'none';
-  _lyrBgData = null;
-  _lyrBgPending = false;
-}
-
-document.getElementById('lyr-bg-modal').addEventListener('click', e => {
-  if (e.target === document.getElementById('lyr-bg-modal')) closeLyrBgModal();
-});
-
-document.getElementById('lyr-bg-file').addEventListener('change', function() {
-  const file = this.files[0];
-  if (!file) return;
-  if (file.size > 5 * 1024 * 1024) {
-    toast('❌ Foto terlalu besar (maks 5 MB)');
-    return;
-  }
-  const reader = new FileReader();
-  reader.onload = e => {
-    _lyrBgData = e.target.result;
-    _lyrBgPending = true;
-    // Tampilkan preview
-    const previewImg = document.getElementById('lyr-bg-preview-img');
-    const previewEmpty = document.getElementById('lyr-bg-preview-empty');
-    previewImg.src = _lyrBgData;
-    previewImg.style.display = 'block';
-    previewEmpty.style.display = 'none';
-    document.getElementById('lyr-bg-save-btn').style.display = 'inline-flex';
-    document.getElementById('lyr-bg-reset-btn').style.display = 'flex';
-  };
-  reader.readAsDataURL(file);
-  // Reset file input agar bisa pilih file yang sama lagi
-  this.value = '';
-});
-
-async function saveLyrBg() {
-  if (!_lyrBgData || !currentUser) return;
-  const btn = document.getElementById('lyr-bg-save-btn');
-  btn.textContent = 'Menyimpan...';
-  btn.disabled = true;
-  try {
-    await db.ref('users/' + currentUser.uid + '/lyricsBackground').set(_lyrBgData);
-    _lyrBgSaved = _lyrBgData;
-    applyLyrBg(_lyrBgSaved);
-    toast('✅ Background lirik berhasil disimpan!');
-    closeLyrBgModal();
-  } catch(e) {
-    toast('❌ Gagal simpan: ' + e.message);
-  } finally {
-    btn.textContent = 'Terapkan';
-    btn.disabled = false;
-  }
-}
-
-async function resetLyrBg() {
-  if (!confirm('Hapus foto background lirik?')) return;
-  try {
-    if (currentUser) await db.ref('users/' + currentUser.uid + '/lyricsBackground').remove();
-    _lyrBgSaved = null;
-    _lyrBgData = null;
-    applyLyrBg(null);
-    const previewImg = document.getElementById('lyr-bg-preview-img');
-    const previewEmpty = document.getElementById('lyr-bg-preview-empty');
-    previewImg.style.display = 'none';
-    previewEmpty.style.display = 'flex';
-    document.getElementById('lyr-bg-save-btn').style.display = 'none';
-    document.getElementById('lyr-bg-reset-btn').style.display = 'none';
-    toast('🗑️ Background lirik dihapus');
-  } catch(e) { toast('❌ Gagal hapus: ' + e.message); }
-}
-
-// Hook ke showApp agar background dimuat setelah login
-const _origShowApp = showApp;
-showApp = function(user) {
-  _origShowApp(user);
-  loadLyrBgFromCloud();
-};
-
-// Pastikan background tetap aktif saat pickFSColor dipanggil (jika ada foto custom)
-const _origPickFSColor = pickFSColor;
-pickFSColor = function() {
-  if (_lyrBgSaved) {
-    // Jangan ganti warna kalau ada custom bg
-    return;
-  }
-  _origPickFSColor();
-};
-
-function updatePublishBtn(isPublic) {
-  const btn = document.getElementById('pv-publish-btn');
-  if (!btn) return;
-  if (isPublic) {
-    btn.classList.add('published');
-    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg> Sudah Dipublikasi`;
-  } else {
-    btn.classList.remove('published');
-    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="14" height="14"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Publikasikan`;
-  }
-}
-
-</script>
-<script>
-// ─── SISTEM NOTIFIKASI ──────────────────────────────────
-// Menyimpan notifikasi di Firebase: users/{uid}/notifications/{notifId}
-// Listener real-time untuk like & komentar di semua playlist publik milik user
-
-let _notifListeners = []; // simpan ref agar bisa di-detach
-
-function timeAgo(ts) {
-  const diff = Date.now() - ts;
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return 'Baru saja';
-  if (m < 60) return m + ' menit lalu';
-  const h = Math.floor(m / 60);
-  if (h < 24) return h + ' jam lalu';
-  const d = Math.floor(h / 24);
-  if (d < 7) return d + ' hari lalu';
-  return new Date(ts).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: '2-digit' });
-}
-
-function toggleNotifPanel() {
-  const panel = document.getElementById('notif-panel');
-  const overlay = document.getElementById('notif-overlay');
-  if (panel.classList.contains('open')) {
-    closeNotifPanel();
-  } else {
-    panel.classList.add('open');
-    overlay.classList.add('show');
-    markAllRead();
-  }
-}
-
-function closeNotifPanel() {
-  document.getElementById('notif-panel').classList.remove('open');
-  document.getElementById('notif-overlay').classList.remove('show');
-}
-
-async function markAllRead() {
-  if (!currentUser) return;
-  const snap = await db.ref('users/' + currentUser.uid + '/notifications').orderByChild('read').equalTo(false).get().catch(() => null);
-  if (!snap || !snap.exists()) return;
-  const updates = {};
-  snap.forEach(child => { updates[child.key + '/read'] = true; });
-  db.ref('users/' + currentUser.uid + '/notifications').update(updates).catch(() => {});
-  // Update badge
-  updateNotifBadge(0);
-}
-
-async function clearAllNotifications() {
-  if (!currentUser) return;
-  if (!confirm('Hapus semua notifikasi?')) return;
-  await db.ref('users/' + currentUser.uid + '/notifications').remove().catch(() => {});
-  renderNotifications([]);
-  updateNotifBadge(0);
-}
-
-function updateNotifBadge(count) {
-  const badge = document.getElementById('notif-badge');
-  const mobBadge = document.getElementById('mob-notif-badge');
-  if (!badge) return;
-  if (count > 0) {
-    badge.textContent = count > 99 ? '99+' : count;
-    badge.classList.add('show');
-    if (mobBadge) { mobBadge.textContent = count > 99 ? '99+' : count; mobBadge.classList.add('show'); }
-  } else {
-    badge.classList.remove('show');
-    if (mobBadge) mobBadge.classList.remove('show');
-  }
-}
-
-function renderNotifications(notifs) {
-  const list = document.getElementById('notif-list');
-  if (!list) return;
-  if (!notifs || !notifs.length) {
-    list.innerHTML = `<div class="notif-empty"><span>🔔</span>Belum ada notifikasi.<br>Saat ada yang like atau<br>komentar playlistmu,<br>akan muncul di sini.</div>`;
-    return;
-  }
-  const sorted = [...notifs].sort((a, b) => (b.ts || 0) - (a.ts || 0));
-  list.innerHTML = '';
-  sorted.forEach(n => {
-    const item = document.createElement('div');
-    item.className = 'notif-item' + (n.read ? '' : ' unread');
-
-    const isLike = n.type === 'like';
-    const isCommentLike = n.type === 'comment_like';
-    const isReply = n.type === 'comment_reply';
-
-    let icon, actionText;
-    if (isLike) {
-      icon = `<div class="notif-icon-wrap notif-icon-like">❤️</div>`;
-      actionText = `menyukai playlist <span class="notif-pl">${esc(n.playlistName || 'playlist')}</span>mu`;
-    } else if (isCommentLike) {
-      icon = `<div class="notif-icon-wrap notif-icon-comment-like">❤️</div>`;
-      actionText = `menyukai komentarmu di <span class="notif-pl">${esc(n.playlistName || 'playlist')}</span>`;
-    } else if (isReply) {
-      icon = `<div class="notif-icon-wrap notif-icon-comment">↩️</div>`;
-      actionText = `membalas komentarmu di <span class="notif-pl">${esc(n.playlistName || 'playlist')}</span>`;
-    } else {
-      icon = `<div class="notif-icon-wrap notif-icon-comment">💬</div>`;
-      actionText = `mengomentari playlist <span class="notif-pl">${esc(n.playlistName || 'playlist')}</span>mu`;
-    }
-
-    const photo = n.fromPhoto
-      ? `<div class="notif-avatar"><img src="${esc(n.fromPhoto)}" alt="" onerror="this.parentElement.textContent='👤'"></div>`
-      : `<div class="notif-avatar">👤</div>`;
-
-    const commentPrev = (!isLike && n.comment)
-      ? `<div class="notif-comment-preview">"${esc(n.comment.slice(0, 80))}${n.comment.length > 80 ? '…' : ''}"</div>`
-      : '';
-
-    item.innerHTML = `
-      ${n.fromPhoto ? photo : icon}
-      <div class="notif-body">
-        <div class="notif-msg">
-          <strong>${esc(n.fromName || 'Seseorang')}</strong>
-          ${actionText}
-        </div>
-        ${commentPrev}
-        <div class="notif-time">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-          ${timeAgo(n.ts || 0)}
-        </div>
-      </div>
-    `;
-    list.appendChild(item);
-  });
-}
-
-// Mulai listen notifikasi dari Firebase
-function startNotifListeners() {
-  if (!currentUser) return;
-
-  // Hapus listener lama
-  _notifListeners.forEach(off => off());
-  _notifListeners = [];
-
-  const notifRef = db.ref('users/' + currentUser.uid + '/notifications');
-
-  // Listen ke SEMUA notifikasi (read + unread) — render panel
-  const allOff = notifRef.orderByChild('ts').limitToLast(50).on('value', snap => {
-    const notifs = [];
-    if (snap.exists()) {
-      snap.forEach(child => { notifs.push({ _id: child.key, ...child.val() }); });
-    }
-    renderNotifications(notifs);
-
-    // Hitung unread
-    const unread = notifs.filter(n => !n.read).length;
-    // Hanya update badge kalau panel tidak sedang terbuka
-    const panelOpen = document.getElementById('notif-panel').classList.contains('open');
-    updateNotifBadge(panelOpen ? 0 : unread);
-  });
-  _notifListeners.push(() => notifRef.off('value', allOff));
-}
-
-// Helper: kirim notifikasi komentar ke owner playlist
-// ════════════════════════════════════════════════════════════
-//  SISTEM KOMENTAR LENGKAP: LIKE · REPLY · FOTO · NOTIFIKASI
-// ════════════════════════════════════════════════════════════
-
-// ── Image viewer fullscreen ──
-function openImgViewer(src) {
-  const v = document.getElementById('img-viewer');
-  const img = document.getElementById('img-viewer-img');
-  if (!v || !img) return;
-  img.src = src;
-  v.classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-function closeImgViewer() {
-  const v = document.getElementById('img-viewer');
-  if (v) v.classList.remove('open');
-  document.body.style.overflow = '';
-}
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeImgViewer(); });
-
-// ── Compress image to base64 (max 800px, quality 0.72) ──
-function compressImage(file, maxPx = 800, quality = 0.72) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const img = new Image();
-      img.onload = () => {
-        let w = img.width, h = img.height;
-        if (w > maxPx || h > maxPx) {
-          if (w > h) { h = Math.round(h * maxPx / w); w = maxPx; }
-          else { w = Math.round(w * maxPx / h); h = maxPx; }
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/jpeg', quality));
-      };
-      img.onerror = reject;
-      img.src = ev.target.result;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-// ── State foto komentar ──
-let _pvCommentPhotoData = null;
-let _cmModalPhotoData = null;
-
-async function onPvCommentPhotoSelected(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  try {
-    const b64 = await compressImage(file);
-    _pvCommentPhotoData = b64;
-    const prev = document.getElementById('pv-comment-photo-preview');
-    const row = document.getElementById('pv-comment-photo-preview-row');
-    prev.src = b64; row.style.display = 'flex';
-    const sendBtn = document.getElementById('pv-comment-send-btn');
-    if (sendBtn) sendBtn.disabled = false;
-  } catch(e) { toast('❌ Gagal memuat foto'); }
-  event.target.value = '';
-}
-function removePvCommentPhoto() {
-  _pvCommentPhotoData = null;
-  document.getElementById('pv-comment-photo-preview-row').style.display = 'none';
-  document.getElementById('pv-comment-photo-preview').src = '';
-  const ta = document.getElementById('pv-comment-textarea');
-  const sendBtn = document.getElementById('pv-comment-send-btn');
-  if (sendBtn) sendBtn.disabled = !ta?.value.trim();
-}
-
-async function onCmModalPhotoSelected(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  try {
-    const b64 = await compressImage(file);
-    _cmModalPhotoData = b64;
-    const prev = document.getElementById('cm-modal-photo-preview');
-    const row = document.getElementById('cm-modal-photo-preview-row');
-    prev.src = b64; row.style.display = 'flex';
-    const sendBtn = document.getElementById('cm-modal-send-btn');
-    if (sendBtn) sendBtn.disabled = false;
-  } catch(e) { toast('❌ Gagal memuat foto'); }
-  event.target.value = '';
-}
-function removeCmModalPhoto() {
-  _cmModalPhotoData = null;
-  document.getElementById('cm-modal-photo-preview-row').style.display = 'none';
-  document.getElementById('cm-modal-photo-preview').src = '';
-  const ta = document.getElementById('cm-modal-textarea');
-  const sendBtn = document.getElementById('cm-modal-send-btn');
-  if (sendBtn) sendBtn.disabled = !ta?.value.trim();
-}
-
-// ── Kirim notifikasi ke owner playlist setelah komentar ──
-async function sendCommentNotif(playlistKey, commentText) {
-  if (!currentUser) return;
-  try {
-    const plSnap = await db.ref('public_playlists/' + playlistKey).get();
-    if (!plSnap.exists()) return;
-    const plData = plSnap.val();
-    const ownerUid = plData.ownerUid;
-    if (!ownerUid || ownerUid === currentUser.uid) return;
-
-    const profileSnap = await db.ref('users/' + currentUser.uid + '/profile').get().catch(() => null);
-    const profile = profileSnap?.val() || {};
-    const fromName = profile.displayName || currentUser.displayName || currentUser.email.split('@')[0];
-    const fromPhoto = profile.photoURL || profile.photoBase64 || currentUser.photoURL || '';
-
-    const notif = {
-      type: 'comment',
-      fromUid: currentUser.uid,
-      fromName,
-      fromPhoto,
-      playlistKey,
-      playlistName: plData.name || 'Playlist',
-      comment: (commentText || '').slice(0, 200),
-      ts: Date.now(),
-      read: false
-    };
-    db.ref('users/' + ownerUid + '/notifications').push(notif).catch(() => {});
-  } catch(e) {
-    console.warn('sendCommentNotif error:', e);
-  }
-}
-
-// ── Kirim notifikasi like komentar ke pemilik komentar ──
-async function sendCommentLikeNotif(playlistKey, commentOwnerUid, commenterName, commentText) {
-  if (!currentUser || !commentOwnerUid) return;
-  if (commentOwnerUid === currentUser.uid) return; // jangan notif diri sendiri
-
-  try {
-    const profileSnap = await db.ref('users/' + currentUser.uid + '/profile').get().catch(() => null);
-    const profile = profileSnap?.val() || {};
-    const fromName = profile.displayName || currentUser.displayName || currentUser.email.split('@')[0];
-    const fromPhoto = profile.photoURL || profile.photoBase64 || currentUser.photoURL || '';
-
-    const plSnap = await db.ref('public_playlists/' + playlistKey).get().catch(() => null);
-    const plName = plSnap?.val()?.name || 'Playlist';
-
-    const notif = {
-      type: 'comment_like',
-      fromUid: currentUser.uid,
-      fromName,
-      fromPhoto,
-      playlistKey,
-      playlistName: plName,
-      comment: (commentText || '').slice(0, 100),
-      ts: Date.now(),
-      read: false
-    };
-    db.ref('users/' + commentOwnerUid + '/notifications').push(notif).catch(() => {});
-  } catch(e) {
-    console.warn('sendCommentLikeNotif error:', e);
-  }
-}
-
-// ── Kirim notifikasi reply komentar ke pemilik komentar ──
-async function sendReplyNotif(playlistKey, commentOwnerUid, replyText) {
-  if (!currentUser || !commentOwnerUid) return;
-  if (commentOwnerUid === currentUser.uid) return;
-
-  try {
-    const profileSnap = await db.ref('users/' + currentUser.uid + '/profile').get().catch(() => null);
-    const profile = profileSnap?.val() || {};
-    const fromName = profile.displayName || currentUser.displayName || currentUser.email.split('@')[0];
-    const fromPhoto = profile.photoURL || profile.photoBase64 || currentUser.photoURL || '';
-
-    const plSnap = await db.ref('public_playlists/' + playlistKey).get().catch(() => null);
-    const plName = plSnap?.val()?.name || 'Playlist';
-
-    const notif = {
-      type: 'comment_reply',
-      fromUid: currentUser.uid,
-      fromName,
-      fromPhoto,
-      playlistKey,
-      playlistName: plName,
-      comment: (replyText || '').slice(0, 100),
-      ts: Date.now(),
-      read: false
-    };
-    db.ref('users/' + commentOwnerUid + '/notifications').push(notif).catch(() => {});
-  } catch(e) {
-    console.warn('sendReplyNotif error:', e);
-  }
-}
-
-// ─── SISTEM KOMENTAR ─────────────────────────────────────
-let _commentListener = null;
-let _cmModalListener = null;
-let _currentCommentKey = null;
-let _replyPhotoDataMap = {}; // commentId → base64
-
-// ── Toggle like komentar ──
-async function toggleCommentLike(playlistKey, commentId, commentOwnerUid, commentText, btn) {
-  if (!currentUser) { toast('⚠️ Login dulu'); return; }
-  const likeRef = db.ref('public_playlists/' + playlistKey + '/comments/' + commentId + '/likes/' + currentUser.uid);
-  const isLiked = btn.classList.contains('liked');
-  const countEl = btn.querySelector('.clk-count');
-
-  if (isLiked) {
-    await likeRef.remove().catch(() => {});
-    btn.classList.remove('liked');
-    btn.querySelector('svg').setAttribute('fill', 'none');
-    if (countEl) countEl.textContent = Math.max(0, parseInt(countEl.textContent || '0') - 1) || '';
-  } else {
-    await likeRef.set(true).catch(() => {});
-    btn.classList.add('liked');
-    btn.querySelector('svg').setAttribute('fill', 'currentColor');
-    if (countEl) countEl.textContent = (parseInt(countEl.textContent || '0') + 1);
-    // Kirim notif ke pemilik komentar
-    sendCommentLikeNotif(playlistKey, commentOwnerUid, '', commentText);
-  }
-}
-
-// ── Toggle reply form ──
-function toggleReplyForm(commentId, playlistKey, commentOwnerUid) {
-  const existing = document.getElementById('reply-form-' + commentId);
-  if (existing) { existing.remove(); _replyPhotoDataMap[commentId] = null; return; }
-
-  const commentItem = document.getElementById('ci-' + commentId);
-  if (!commentItem) return;
-
-  // Get self avatar
-  let selfAvatarHtml = '👤';
-  if (currentUser) {
-    db.ref('users/' + currentUser.uid + '/profile').get().then(snap => {
-      const p = snap?.val() || {};
-      const photo = p.photoURL || p.photoBase64 || currentUser.photoURL || '';
-      const avatarEl = document.getElementById('reply-self-av-' + commentId);
-      if (avatarEl) avatarEl.innerHTML = photo ? `<img src="${esc(photo)}" alt="">` : '👤';
-    }).catch(() => {});
-  }
-
-  const form = document.createElement('div');
-  form.className = 'reply-input-wrap';
-  form.id = 'reply-form-' + commentId;
-  form.innerHTML = `
-    <div class="reply-avatar-self" id="reply-self-av-${esc(commentId)}">${selfAvatarHtml}</div>
-    <div class="reply-box">
-      <textarea class="reply-textarea" id="reply-ta-${esc(commentId)}" placeholder="Balas komentar..." rows="1"></textarea>
-      <div id="reply-photo-prev-row-${esc(commentId)}" style="display:none;" class="reply-preview-row">
-        <img id="reply-photo-prev-${esc(commentId)}" class="reply-preview-photo" src="" alt="">
-        <button class="reply-preview-remove" onclick="removeReplyPhoto('${esc(commentId)}')" title="Hapus foto">✕</button>
-      </div>
-      <div class="reply-bottom-row">
-        <div style="display:flex;align-items:center;gap:6px;">
-          <button class="reply-photo-btn" onclick="document.getElementById('reply-photo-input-${esc(commentId)}').click()" title="Bagikan foto">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-            Foto
-          </button>
-          <input type="file" id="reply-photo-input-${esc(commentId)}" accept="image/*" style="display:none;" onchange="onReplyPhotoSelected(event,'${esc(commentId)}')">
-          <button class="reply-cancel-btn" onclick="toggleReplyForm('${esc(commentId)}','${esc(playlistKey)}','${esc(commentOwnerUid)}')">Batal</button>
-        </div>
-        <button class="reply-send-btn" id="reply-send-${esc(commentId)}" disabled>
-          <svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-          Balas
-        </button>
-      </div>
-    </div>
-  `;
-  commentItem.after(form);
-
-  const ta = document.getElementById('reply-ta-' + commentId);
-  const sendBtn = document.getElementById('reply-send-' + commentId);
-  ta.addEventListener('input', () => {
-    ta.style.height = 'auto';
-    ta.style.height = Math.min(ta.scrollHeight, 80) + 'px';
-    sendBtn.disabled = !ta.value.trim() && !_replyPhotoDataMap[commentId];
-  });
-  sendBtn.addEventListener('click', () => submitReply(playlistKey, commentId, commentOwnerUid, ta, sendBtn));
-  ta.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitReply(playlistKey, commentId, commentOwnerUid, ta, sendBtn); }
-  });
-  setTimeout(() => ta.focus(), 100);
-}
-
-async function onReplyPhotoSelected(event, commentId) {
-  const file = event.target.files[0];
-  if (!file) return;
-  try {
-    const b64 = await compressImage(file);
-    _replyPhotoDataMap[commentId] = b64;
-    const prev = document.getElementById('reply-photo-prev-' + commentId);
-    const row = document.getElementById('reply-photo-prev-row-' + commentId);
-    if (prev) prev.src = b64;
-    if (row) row.style.display = 'flex';
-    const sendBtn = document.getElementById('reply-send-' + commentId);
-    if (sendBtn) sendBtn.disabled = false;
-  } catch(e) { toast('❌ Gagal memuat foto'); }
-  event.target.value = '';
-}
-function removeReplyPhoto(commentId) {
-  _replyPhotoDataMap[commentId] = null;
-  const row = document.getElementById('reply-photo-prev-row-' + commentId);
-  const prev = document.getElementById('reply-photo-prev-' + commentId);
-  if (row) row.style.display = 'none';
-  if (prev) prev.src = '';
-  const ta = document.getElementById('reply-ta-' + commentId);
-  const sendBtn = document.getElementById('reply-send-' + commentId);
-  if (sendBtn) sendBtn.disabled = !ta?.value.trim();
-}
-
-// ── Submit balasan ──
-async function submitReply(playlistKey, commentId, commentOwnerUid, textareaEl, sendBtn) {
-  const text = textareaEl.value.trim();
-  const photoData = _replyPhotoDataMap[commentId] || null;
-  if (!text && !photoData) return;
-  if (!currentUser) { toast('⚠️ Login dulu'); return; }
-  sendBtn.disabled = true;
-  try {
-    const profileSnap = await db.ref('users/' + currentUser.uid + '/profile').get().catch(() => null);
-    const profile = profileSnap?.val() || {};
-    const name = profile.displayName || currentUser.displayName || currentUser.email.split('@')[0];
-    const photoURL = profile.photoURL || profile.photoBase64 || currentUser.photoURL || '';
-    const reply = { uid: currentUser.uid, name, photoURL, text: text || '', ts: Date.now() };
-    if (photoData) reply.photoData = photoData;
-    await db.ref('public_playlists/' + playlistKey + '/comments/' + commentId + '/replies').push(reply);
-    textareaEl.value = '';
-    textareaEl.style.height = 'auto';
-    _replyPhotoDataMap[commentId] = null;
-    // Hapus form reply
-    const form = document.getElementById('reply-form-' + commentId);
-    if (form) form.remove();
-    toast('↩️ Balasan terkirim!');
-    await sendReplyNotif(playlistKey, commentOwnerUid, text);
-  } catch(e) {
-    toast('❌ Gagal kirim: ' + e.message);
-    sendBtn.disabled = false;
-  }
-}
-
-// ── Render satu item komentar ──
-function buildCommentItem(c, playlistKey, isModal) {
-  const isOwn = currentUser && c.uid === currentUser.uid;
-  const item = document.createElement('div');
-  item.className = 'comment-item';
-  item.id = 'ci-' + c._id;
-
-  const photo = c.photoURL
-    ? `<img src="${esc(c.photoURL)}" alt="" onerror="this.parentElement.innerHTML='👤'">`
-    : '👤';
-
-  // Photo dalam komentar
-  const commentPhotoHtml = c.photoData
-    ? `<img src="${esc(c.photoData)}" class="comment-photo-img" alt="foto" onclick="openImgViewer('${esc(c.photoData)}')" loading="lazy">`
-    : '';
-
-  // Likes
-  const likeCount = c.likes ? Object.keys(c.likes).length : 0;
-  const iLikedComment = currentUser && c.likes && c.likes[currentUser.uid];
-
-  // Replies
-  let repliesHtml = '';
-  if (c.replies) {
-    const replyArr = Object.entries(c.replies).map(([k, v]) => ({ _id: k, ...v })).sort((a, b) => a.ts - b.ts);
-    repliesHtml = `<div class="comment-replies">` + replyArr.map(r => {
-      const isOwnReply = currentUser && r.uid === currentUser.uid;
-      const rPhoto = r.photoURL
-        ? `<img src="${esc(r.photoURL)}" alt="" onerror="this.parentElement.innerHTML='👤'">`
-        : '👤';
-      const rImgHtml = r.photoData
-        ? `<img src="${esc(r.photoData)}" class="comment-reply-photo" alt="foto" onclick="openImgViewer('${esc(r.photoData)}')" loading="lazy">`
-        : '';
-      return `
-        <div class="comment-reply-item">
-          <div class="comment-reply-avatar">${rPhoto}</div>
-          <div class="comment-reply-bubble">
-            <div class="comment-reply-meta">
-              <span class="comment-reply-name">${esc(r.name || 'Anonim')}</span>
-              <span class="comment-reply-time">${timeAgo(r.ts || 0)}</span>
-            </div>
-            ${r.text ? `<div class="comment-reply-text">${esc(r.text)}</div>` : ''}
-            ${rImgHtml}
-            <div class="comment-reply-actions">
-              ${isOwnReply ? `<button class="comment-reply-del-btn" title="Hapus" onclick="deleteReply('${esc(playlistKey)}','${esc(c._id)}','${esc(r._id)}')">✕ Hapus</button>` : ''}
-            </div>
-          </div>
-        </div>`;
-    }).join('') + `</div>`;
-  }
-
-  item.innerHTML = `
-    <div class="comment-avatar">${photo}</div>
-    <div class="comment-bubble">
-      <div class="comment-meta">
-        <span class="comment-name">${esc(c.name || 'Anonim')}</span>
-        <span class="comment-time">${timeAgo(c.ts || 0)}</span>
-      </div>
-      ${c.text ? `<div class="comment-text">${esc(c.text)}</div>` : ''}
-      ${commentPhotoHtml}
-      <div class="comment-actions">
-        <button class="comment-like-btn ${iLikedComment ? 'liked' : ''}"
-          onclick="toggleCommentLike('${esc(playlistKey)}','${esc(c._id)}','${esc(c.uid)}',${JSON.stringify((c.text||'').slice(0,80))},this)">
-          <svg viewBox="0 0 24 24" fill="${iLikedComment ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2.5">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-          </svg>
-          <span class="clk-count">${likeCount || ''}</span>
-        </button>
-        <button class="comment-reply-btn" onclick="toggleReplyForm('${esc(c._id)}','${esc(playlistKey)}','${esc(c.uid)}')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 17l-5-5 5-5"/><path d="M4 12h11a4 4 0 0 1 0 8h-1"/></svg>
-          Balas
-        </button>
-      </div>
-      ${repliesHtml}
-    </div>
-    ${isOwn ? `<button class="comment-del-btn" title="Hapus" onclick="deleteComment('${esc(playlistKey)}','${esc(c._id)}','${isModal ? 'modal' : 'pv'}')">✕</button>` : ''}
-  `;
-  return item;
-}
-
-// ── Render daftar komentar ke container tertentu ──
-function renderCommentList(container, comments, playlistKey, isModal) {
-  if (!comments || !comments.length) {
-    container.innerHTML = `<div class="comment-empty"><span>💬</span>Belum ada komentar.<br>Jadilah yang pertama!</div>`;
-    return;
-  }
-  container.innerHTML = '';
-  comments.forEach(c => container.appendChild(buildCommentItem(c, playlistKey, isModal)));
-}
-
-// ── Ambil & render komentar, pasang listener real-time ──
-function listenComments(playlistKey, listEl, offCallback) {
-  const ref = db.ref('public_playlists/' + playlistKey + '/comments').orderByChild('ts').limitToLast(100);
-  const handler = ref.on('value', snap => {
-    const comments = [];
-    if (snap.exists()) {
-      snap.forEach(child => { comments.push({ _id: child.key, ...child.val() }); });
-    }
-    const countEl = document.querySelector('.comment-count-' + playlistKey);
-    if (countEl) countEl.textContent = comments.length ? `💬 ${comments.length}` : '💬';
-    renderCommentList(listEl, comments, playlistKey, offCallback === 'modal');
-  });
-  return () => ref.off('value', handler);
-}
-
-// ── Kirim komentar (dengan foto opsional) ──
-async function submitComment(playlistKey, textareaEl, sendBtn, photoDataRef) {
-  const text = textareaEl.value.trim();
-  const photoData = (typeof photoDataRef === 'function') ? photoDataRef() : photoDataRef;
-  if (!text && !photoData) return;
-  if (!currentUser) { toast('⚠️ Login dulu'); return; }
-  sendBtn.disabled = true;
-  try {
-    const profileSnap = await db.ref('users/' + currentUser.uid + '/profile').get().catch(() => null);
-    const profile = profileSnap?.val() || {};
-    const name = profile.displayName || currentUser.displayName || currentUser.email.split('@')[0];
-    const photoURL = profile.photoURL || profile.photoBase64 || currentUser.photoURL || '';
-    const comment = { uid: currentUser.uid, name, photoURL, text: text || '', ts: Date.now() };
-    if (photoData) comment.photoData = photoData;
-    await db.ref('public_playlists/' + playlistKey + '/comments').push(comment);
-    textareaEl.value = '';
-    textareaEl.style.height = 'auto';
-    sendBtn.disabled = true;
-    if (text) await sendCommentNotif(playlistKey, text);
-    toast('💬 Komentar terkirim!');
-  } catch(e) {
-    toast('❌ Gagal kirim: ' + e.message);
-    sendBtn.disabled = false;
-  }
-}
-
-// ── Hapus komentar ──
-async function deleteComment(playlistKey, commentId, source) {
-  if (!confirm('Hapus komentar ini?')) return;
-  try {
-    await db.ref('public_playlists/' + playlistKey + '/comments/' + commentId).remove();
-    toast('🗑️ Komentar dihapus');
-  } catch(e) { toast('❌ Gagal hapus: ' + e.message); }
-}
-
-// ── Hapus balasan ──
-async function deleteReply(playlistKey, commentId, replyId) {
-  if (!confirm('Hapus balasan ini?')) return;
-  try {
-    await db.ref('public_playlists/' + playlistKey + '/comments/' + commentId + '/replies/' + replyId).remove();
-    toast('🗑️ Balasan dihapus');
-  } catch(e) { toast('❌ Gagal hapus: ' + e.message); }
-}
-
-// ── Setup comment input (auto-resize + enable send) ──
-function setupCommentInput(textareaEl, sendBtn, playlistKey, isModal, getPhotoData, clearPhotoData) {
-  textareaEl.addEventListener('input', () => {
-    textareaEl.style.height = 'auto';
-    textareaEl.style.height = Math.min(textareaEl.scrollHeight, 100) + 'px';
-    sendBtn.disabled = !textareaEl.value.trim() && !getPhotoData?.();
-  });
-  sendBtn.addEventListener('click', async () => {
-    const pd = getPhotoData?.() || null;
-    await submitComment(playlistKey, textareaEl, sendBtn, pd);
-    clearPhotoData?.();
-  });
-  textareaEl.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      const pd = getPhotoData?.() || null;
-      submitComment(playlistKey, textareaEl, sendBtn, pd).then(() => clearPhotoData?.());
-    }
-  });
-}
-
-// ── Tampilkan komentar di playlist-view ──
-function showPvComments(playlistKey) {
-  if (_commentListener) { _commentListener(); _commentListener = null; }
-
-  const section = document.getElementById('pv-comment-section');
-  const listEl = document.getElementById('pv-comment-list');
-  const textarea = document.getElementById('pv-comment-textarea');
-  const sendBtn = document.getElementById('pv-comment-send-btn');
-  const selfAvatar = document.getElementById('pv-comment-self-avatar');
-  if (!section) return;
-
-  section.style.display = 'block';
-  listEl.innerHTML = '<div class="comment-loading">Memuat komentar...</div>';
-  textarea.value = '';
-  sendBtn.disabled = true;
-  removePvCommentPhoto();
-
-  if (currentUser) {
-    db.ref('users/' + currentUser.uid + '/profile').get().then(snap => {
-      const p = snap?.val() || {};
-      const photo = p.photoURL || p.photoBase64 || currentUser.photoURL || '';
-      selfAvatar.innerHTML = photo ? `<img src="${esc(photo)}" alt="">` : '👤';
-    }).catch(() => {});
-  }
-
-  textarea.removeEventListener('input', textarea._inputHandler);
-  sendBtn.replaceWith(sendBtn.cloneNode(true));
-  const newSendBtn = document.getElementById('pv-comment-send-btn');
-  const clonedTa = textarea.cloneNode(true);
-  textarea.replaceWith(clonedTa);
-  const newTa = document.getElementById('pv-comment-textarea');
-
-  setupCommentInput(
-    newTa, newSendBtn, playlistKey, false,
-    () => _pvCommentPhotoData,
-    () => removePvCommentPhoto()
-  );
-
-  _commentListener = listenComments(playlistKey, listEl, 'pv');
-}
-
-function hidePvComments() {
-  if (_commentListener) { _commentListener(); _commentListener = null; }
-  const section = document.getElementById('pv-comment-section');
-  if (section) section.style.display = 'none';
-}
-
-// ── Modal komentar dari beranda ──
-function openCommentModal(e, playlistKey, playlistName) {
-  e.stopPropagation();
-  if (!currentUser) { toast('⚠️ Login dulu untuk berkomentar'); return; }
-
-  _currentCommentKey = playlistKey;
-  const modal = document.getElementById('comment-modal');
-  const title = document.getElementById('cm-modal-title');
-  const listEl = document.getElementById('cm-modal-list');
-  const textarea = document.getElementById('cm-modal-textarea');
-  const sendBtn = document.getElementById('cm-modal-send-btn');
-  const selfAvatar = document.getElementById('cm-modal-self-avatar');
-
-  title.textContent = '💬 ' + playlistName;
-  listEl.innerHTML = '<div class="comment-loading">Memuat komentar...</div>';
-  textarea.value = '';
-  sendBtn.disabled = true;
-  removeCmModalPhoto();
-
-  modal.classList.add('open');
-  document.body.style.overflow = 'hidden';
-
-  db.ref('users/' + currentUser.uid + '/profile').get().then(snap => {
-    const p = snap?.val() || {};
-    const photo = p.photoURL || p.photoBase64 || currentUser.photoURL || '';
-    selfAvatar.innerHTML = photo ? `<img src="${esc(photo)}" alt="">` : '👤';
-  }).catch(() => {});
-
-  const newSendBtn = sendBtn.cloneNode(true);
-  sendBtn.replaceWith(newSendBtn);
-  const newTextarea = textarea.cloneNode(true);
-  textarea.replaceWith(newTextarea);
-
-  setupCommentInput(
-    newTextarea, newSendBtn, playlistKey, true,
-    () => _cmModalPhotoData,
-    () => removeCmModalPhoto()
-  );
-
-  if (_cmModalListener) { _cmModalListener(); _cmModalListener = null; }
-  _cmModalListener = listenComments(playlistKey, listEl, 'modal');
-
-  setTimeout(() => newTextarea.focus(), 300);
-}
-
-function closeCommentModal() {
-  if (_cmModalListener) { _cmModalListener(); _cmModalListener = null; }
-  _currentCommentKey = null;
-  const modal = document.getElementById('comment-modal');
-  modal.classList.remove('open');
-  document.body.style.overflow = '';
-  removeCmModalPhoto();
-}
-
-// ── Hook ke openPublicPlaylist ──
-const _origOpenPublicPlaylist = openPublicPlaylist;
-openPublicPlaylist = async function(pl) {
-  await _origOpenPublicPlaylist(pl);
-  showPvComments(pl.key);
-};
-
-// ── Hook ke backFromPlaylist ──
-const _origBackFromPlaylist = backFromPlaylist;
-backFromPlaylist = function() {
-  hidePvComments();
-  _origBackFromPlaylist();
-};
-
-// Hook ke showApp untuk mulai listener setelah login
-const _origShowAppNotif = showApp;
-showApp = function(user) {
-  _origShowAppNotif(user);
-  setTimeout(() => startNotifListeners(), 1500);
-};
-
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').catch(console.error);
-}
 </script>
 </body>
 </html>
