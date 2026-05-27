@@ -209,6 +209,27 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
 .pv-empty{text-align:center;padding:50px 20px;color:var(--muted);font-size:.83rem;line-height:1.8;}
 .pv-empty-icon{font-size:2.5rem;margin-bottom:12px;}
 
+/* ── DRAG & REORDER ────────────────────────────────────── */
+.reorder-mode .track-row{cursor:grab;user-select:none;}
+.reorder-mode .track-row:active{cursor:grabbing;}
+.track-row.drag-over{background:var(--green-dim);border-top:2px solid var(--green);}
+.track-row.dragging{opacity:.4;background:var(--hover);}
+.tr-drag{opacity:0;background:none;border:none;color:var(--muted);cursor:grab;padding:2px 4px;border-radius:4px;display:flex;align-items:center;flex-shrink:0;transition:all .15s;}
+.track-row:hover .tr-drag{opacity:1;}
+.tr-drag:hover{color:var(--text);}
+.tr-drag svg{width:14px;height:14px;}
+.reorder-mode .tr-drag{opacity:1;color:var(--green);}
+.reorder-mode .tr-del{display:none;}
+.reorder-mode .track-row{border-left:2px solid transparent;transition:border-color .15s,background .15s;}
+.reorder-mode .track-row:hover{border-left-color:var(--green);}
+.pv-reorder-btn{background:none;border:1px solid var(--border);border-radius:50px;padding:6px 16px;color:var(--sub);font-family:var(--f);font-size:.78rem;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:6px;}
+.pv-reorder-btn:hover{color:var(--text);border-color:var(--green);}
+.pv-reorder-btn.active{background:var(--green-dim);border-color:var(--green);color:var(--green);}
+.pv-reorder-btn svg{width:14px;height:14px;}
+.reorder-hint{font-size:.7rem;color:var(--muted);padding:4px 8px 10px 8px;display:none;text-align:center;letter-spacing:.5px;}
+.reorder-mode .reorder-hint{display:block;}
+.touch-drag-ghost{position:fixed;pointer-events:none;z-index:9999;opacity:.85;background:var(--hover);border:1px solid var(--green);border-radius:var(--rs);padding:8px 12px;font-size:.8rem;font-family:var(--f);color:var(--text);max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 8px 32px rgba(0,0,0,.5);}
+
 /* ── OWNER PROFILE CARD (di playlist publik) ── */
 .pv-owner-card{display:flex;align-items:center;gap:14px;margin:0 24px 16px;padding:14px 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;transition:all .2s;text-decoration:none;}
 .pv-owner-card:hover{background:var(--hover);border-color:rgba(29,107,219,.4);transform:translateY(-1px);}
@@ -1395,6 +1416,10 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         Ubah Nama
       </button>
+      <button class="pv-reorder-btn" id="pv-reorder-btn" onclick="toggleReorderMode()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><circle cx="8" cy="9" r="1.5" fill="currentColor" stroke="none"/><circle cx="8" cy="15" r="1.5" fill="currentColor" stroke="none"/></svg>
+        Atur Urutan
+      </button>
       <button class="pv-action-btn" onclick="openAddSongModal()" style="margin-left:auto;">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
         Tambah Lagu
@@ -2011,6 +2036,7 @@ function showSearchView() {
 }
 
 function showPlaylistView(plId) {
+  if (currentPlaylistId !== plId) _reorderMode = false;
   currentPlaylistId = plId;
   currentPubPlaylist = null;
   const pl = playlists[plId];
@@ -2024,6 +2050,8 @@ function showPlaylistView(plId) {
   document.querySelectorAll('.pv-action-btn').forEach(b => b.style.display = '');
   const pubBtn = document.getElementById('pv-publish-btn');
   if (pubBtn) { pubBtn.style.display = ''; updatePublishBtn(!!pl.public); }
+  const reorderBtn = document.getElementById('pv-reorder-btn');
+  if (reorderBtn) reorderBtn.style.display = '';
   const covEdit = document.querySelector('.pv-cover-edit');
   if (covEdit) covEdit.style.display = '';
   // Hapus owner card jika ada (dari playlist publik sebelumnya)
@@ -2177,6 +2205,40 @@ function renderAddSongPLList() {
   });
 }
 
+// ─── Reorder Mode State ───────────────────────────────────
+let _reorderMode = false;
+let _dragSrcIdx = null;
+let _touchGhost = null;
+let _touchDragIdx = null;
+
+function toggleReorderMode() {
+  _reorderMode = !_reorderMode;
+  const btn = document.getElementById('pv-reorder-btn');
+  const tracksEl = document.getElementById('pv-tracks');
+  if (btn) btn.classList.toggle('active', _reorderMode);
+  if (tracksEl) tracksEl.classList.toggle('reorder-mode', _reorderMode);
+  if (_reorderMode) {
+    toast('🔀 Mode atur urutan aktif — seret lagu untuk mengubah urutan');
+  } else {
+    toast('✅ Urutan lagu disimpan');
+    scheduleSave();
+  }
+  if (currentPlaylistId) renderPlaylistView(currentPlaylistId);
+}
+
+function _reorderTrack(plId, fromIdx, toIdx) {
+  const pl = playlists[plId];
+  if (!pl) return;
+  const tracks = pl.tracks;
+  if (fromIdx < 0 || fromIdx >= tracks.length || toIdx < 0 || toIdx >= tracks.length) return;
+  const [moved] = tracks.splice(fromIdx, 1);
+  tracks.splice(toIdx, 0, moved);
+  if (curQueue.length && currentPlaylistId === plId) curQueue = [...tracks];
+  scheduleSave();
+  renderPlaylistView(plId);
+  toast('↕️ Urutan lagu diperbarui');
+}
+
 // ─── Playlist View Render ─────────────────────────────────
 function renderPlaylistView(plId) {
   const pl = playlists[plId];
@@ -2194,43 +2256,140 @@ function renderPlaylistView(plId) {
   document.getElementById('pv-title').textContent = pl.name;
   document.getElementById('pv-sub').textContent = pl.tracks.length + ' lagu';
 
+  // Sync reorder button state
+  const btn = document.getElementById('pv-reorder-btn');
+  if (btn) btn.classList.toggle('active', _reorderMode);
+
   // Track list
   const c = document.getElementById('pv-tracks');
   if (!pl.tracks.length) {
+    _reorderMode = false;
+    if (btn) btn.classList.remove('active');
     c.innerHTML = `<div class="pv-empty"><div class="pv-empty-icon">🎵</div>Belum ada lagu di playlist ini.<br>Klik "Tambah Lagu" untuk mulai menambahkan.</div>`;
     return;
   }
+
+  if (_reorderMode) c.classList.add('reorder-mode');
+  else c.classList.remove('reorder-mode');
+
   c.innerHTML = `
     <div class="track-list-header">
       <div class="tl-h">#</div>
       <div class="tl-h">Judul</div>
       <div class="tl-h">Artis</div>
-      <div class="tl-h r">Durasi</div>
-    </div>`;
+      <div class="tl-h r">${_reorderMode ? '<span style="color:var(--green);font-size:.65rem">SERET UNTUK ATUR</span>' : 'Hapus'}</div>
+    </div>
+    <div class="reorder-hint">☰ Tahan &amp; seret baris untuk mengubah urutan</div>`;
+
   pl.tracks.forEach((t, i) => {
     const isPlaying = curTrack && curTrack._query === t._query;
     const row = document.createElement('div');
     row.className = 'track-row' + (isPlaying ? ' playing' : '');
+    row.dataset.idx = i;
+    row.draggable = _reorderMode;
     const src = t.photo || t.thumb;
     row.innerHTML = `
-      <div class="tr-num">${i+1}</div>
+      <div class="tr-num">${isPlaying ? '<svg viewBox="0 0 24 24" width="14" height="14" fill="var(--green)"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3z"/></svg>' : (i+1)}</div>
       <div class="tr-info">
         ${src ? `<img class="tr-thumb" src="${esc(src)}" onerror="this.style.display='none'">` : `<div class="tr-thumb-ph">🎵</div>`}
         <div class="tr-text"><div class="tr-title">${esc(t.title)}</div></div>
       </div>
       <div class="tr-album" style="font-size:.75rem;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(t.artist)}</div>
-      <div class="tr-dur">
-        <button class="tr-del" title="Hapus dari playlist" onclick="removeTrackFromPlaylist('${plId}',${i}); event.stopPropagation();">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-        </button>
+      <div class="tr-dur" style="display:flex;align-items:center;justify-content:flex-end;gap:4px;">
+        ${_reorderMode
+          ? `<button class="tr-drag" title="Seret untuk mengatur urutan"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 15h18v-2H3v2zm0 4h18v-2H3v2zm0-8h18V9H3v2zm0-6v2h18V5H3z"/></svg></button>`
+          : `<button class="tr-del" title="Hapus dari playlist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>`
+        }
       </div>
     `;
+
+    // Click to play
     row.addEventListener('click', (e) => {
+      if (_reorderMode) return;
       if (e.target.closest('.tr-del')) return;
-      // Set queue sebagai semua track di playlist ini
       curQueue = pl.tracks.map((tr, idx) => ({ ...tr, _plIdx: idx }));
       loadPlay(t, plId);
     });
+
+    // Delete
+    const delBtn = row.querySelector('.tr-del');
+    if (delBtn) {
+      delBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        removeTrackFromPlaylist(plId, i);
+      });
+    }
+
+    // ── Desktop Drag ──
+    if (_reorderMode) {
+      row.addEventListener('dragstart', (e) => {
+        _dragSrcIdx = i;
+        row.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', i);
+      });
+      row.addEventListener('dragend', () => {
+        row.classList.remove('dragging');
+        c.querySelectorAll('.track-row').forEach(r => r.classList.remove('drag-over'));
+      });
+      row.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        c.querySelectorAll('.track-row').forEach(r => r.classList.remove('drag-over'));
+        row.classList.add('drag-over');
+      });
+      row.addEventListener('dragleave', () => row.classList.remove('drag-over'));
+      row.addEventListener('drop', (e) => {
+        e.preventDefault();
+        row.classList.remove('drag-over');
+        const srcIdx = _dragSrcIdx;
+        const dstIdx = parseInt(row.dataset.idx);
+        if (srcIdx === null || srcIdx === dstIdx) return;
+        _reorderTrack(plId, srcIdx, dstIdx);
+      });
+
+      // ── Touch Drag (mobile) ──
+      row.addEventListener('touchstart', (e) => {
+        _touchDragIdx = i;
+        const touch = e.touches[0];
+        if (!_touchGhost) {
+          _touchGhost = document.createElement('div');
+          _touchGhost.className = 'touch-drag-ghost';
+          document.body.appendChild(_touchGhost);
+        }
+        _touchGhost.textContent = '☰ ' + t.title;
+        _touchGhost.style.display = 'block';
+        _touchGhost.style.left = (touch.clientX + 14) + 'px';
+        _touchGhost.style.top = (touch.clientY - 20) + 'px';
+        row.classList.add('dragging');
+      }, {passive: true});
+      row.addEventListener('touchmove', (e) => {
+        if (_touchDragIdx === null) return;
+        const touch = e.touches[0];
+        if (_touchGhost) {
+          _touchGhost.style.left = (touch.clientX + 14) + 'px';
+          _touchGhost.style.top = (touch.clientY - 20) + 'px';
+        }
+        const el = document.elementFromPoint(touch.clientX, touch.clientY);
+        const targetRow = el ? el.closest('.track-row') : null;
+        c.querySelectorAll('.track-row').forEach(r => r.classList.remove('drag-over'));
+        if (targetRow) targetRow.classList.add('drag-over');
+      }, {passive: true});
+      row.addEventListener('touchend', (e) => {
+        if (_touchDragIdx === null) return;
+        c.querySelectorAll('.track-row').forEach(r => r.classList.remove('dragging', 'drag-over'));
+        if (_touchGhost) _touchGhost.style.display = 'none';
+        const touch = e.changedTouches[0];
+        const el = document.elementFromPoint(touch.clientX, touch.clientY);
+        const targetRow = el ? el.closest('.track-row') : null;
+        if (targetRow && targetRow.dataset.idx !== undefined) {
+          const dstIdx = parseInt(targetRow.dataset.idx);
+          if (_touchDragIdx !== dstIdx) _reorderTrack(plId, _touchDragIdx, dstIdx);
+        }
+        _touchDragIdx = null;
+      }, {passive: true});
+    }
+
     c.appendChild(row);
   });
 }
@@ -3164,6 +3323,7 @@ async function toggleLike(e, key, currentlyLiked) {
 // Open a public playlist (read-only view)
 let currentPubPlaylist = null;
 async function openPublicPlaylist(pl) {
+  _reorderMode = false; // reset mode saat buka playlist publik
   currentPubPlaylist = pl;
   currentPlaylistId = null; // not an owned playlist
   const tracks = (pl.tracks || []).map(t => ({
@@ -3196,6 +3356,8 @@ async function openPublicPlaylist(pl) {
   document.querySelectorAll('.pv-action-btn').forEach(b => b.style.display = isOwn ? '' : 'none');
   const pubBtn = document.getElementById('pv-publish-btn');
   if (pubBtn) pubBtn.style.display = 'none';
+  const reorderBtn = document.getElementById('pv-reorder-btn');
+  if (reorderBtn) reorderBtn.style.display = 'none';
   const covEdit = document.querySelector('.pv-cover-edit');
   if (covEdit) covEdit.style.display = 'none';
 
