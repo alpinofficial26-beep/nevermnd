@@ -116,6 +116,158 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
 #btn-search:hover{box-shadow:var(--green-glow);transform:translateY(-50%) scale(1.04)}
 #btn-search:disabled{opacity:.5;cursor:not-allowed;transform:translateY(-50%)}
 
+/* ── SEARCH SUGGESTION DROPDOWN ─────────────────────────── */
+#search-suggestions{
+  position:absolute;
+  top:calc(100% + 8px);
+  left:0;right:0;
+  background:rgba(14,18,32,0.92);
+  backdrop-filter:blur(24px) saturate(1.6);
+  -webkit-backdrop-filter:blur(24px) saturate(1.6);
+  border:1px solid rgba(255,255,255,0.09);
+  border-radius:18px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.55),0 0 0 1px rgba(29,107,219,0.08);
+  overflow:hidden;
+  z-index:200;
+  opacity:0;
+  transform:translateY(-8px) scale(0.98);
+  pointer-events:none;
+  transition:opacity .22s cubic-bezier(.22,1,.36,1),transform .22s cubic-bezier(.22,1,.36,1);
+  max-height:420px;
+  overflow-y:auto;
+  scrollbar-width:thin;
+  scrollbar-color:var(--hover) transparent;
+}
+#search-suggestions.open{
+  opacity:1;
+  transform:translateY(0) scale(1);
+  pointer-events:all;
+}
+.sugg-section-label{
+  padding:10px 16px 4px;
+  font-size:.6rem;
+  font-weight:800;
+  letter-spacing:2.5px;
+  text-transform:uppercase;
+  color:var(--muted);
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.sugg-section-label svg{width:11px;height:11px;flex-shrink:0;}
+.sugg-item{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:9px 16px;
+  cursor:pointer;
+  transition:background .15s,border-left-color .15s;
+  border-left:2px solid transparent;
+  position:relative;
+}
+.sugg-item:hover,.sugg-item.focused{
+  background:rgba(29,107,219,0.09);
+  border-left-color:var(--green);
+}
+.sugg-item.focused{background:rgba(29,107,219,0.13);}
+.sugg-icon{
+  width:32px;height:32px;
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+  font-size:.85rem;
+  background:var(--card);
+  border:1px solid var(--border);
+}
+.sugg-icon svg{width:14px;height:14px;color:var(--sub);}
+.sugg-icon.trending{background:rgba(255,100,80,0.12);border-color:rgba(255,100,80,0.2);}
+.sugg-icon.trending svg{color:#ff7060;}
+.sugg-icon.history{background:rgba(125,125,180,0.1);border-color:rgba(125,125,180,0.18);}
+.sugg-icon.history svg{color:#9ba8cc;}
+.sugg-icon.result{
+  width:36px;height:36px;
+  border-radius:9px;
+  overflow:hidden;
+  background:var(--hover);
+  border:none;
+  padding:0;
+}
+.sugg-icon.result img{width:100%;height:100%;object-fit:cover;display:block;}
+.sugg-text{flex:1;min-width:0;}
+.sugg-main{
+  font-size:.83rem;font-weight:600;
+  color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  line-height:1.3;
+}
+.sugg-main mark{
+  background:transparent;
+  color:var(--green);
+  font-weight:800;
+}
+.sugg-sub{
+  font-size:.7rem;color:var(--sub);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  margin-top:1px;
+}
+.sugg-arrow{
+  flex-shrink:0;
+  width:22px;height:22px;
+  background:rgba(29,107,219,0.1);
+  border:1px solid rgba(29,107,219,0.18);
+  border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;
+  transition:opacity .15s;
+}
+.sugg-item:hover .sugg-arrow,.sugg-item.focused .sugg-arrow{opacity:1;}
+.sugg-arrow svg{width:11px;height:11px;color:var(--green);}
+.sugg-divider{
+  height:1px;
+  background:var(--border);
+  margin:4px 16px;
+}
+.sugg-empty{
+  padding:28px 20px;
+  text-align:center;
+  color:var(--muted);
+  font-size:.8rem;
+  line-height:1.8;
+}
+.sugg-empty span{display:block;font-size:1.8rem;margin-bottom:8px;}
+.sugg-footer{
+  padding:8px 16px;
+  font-size:.68rem;
+  color:var(--muted);
+  border-top:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  gap:10px;
+  background:rgba(8,11,18,0.5);
+}
+.sugg-footer kbd{
+  display:inline-flex;align-items:center;justify-content:center;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:4px;
+  padding:1px 5px;
+  font-size:.62rem;
+  font-family:var(--fm);
+  color:var(--sub);
+  gap:2px;
+}
+/* Pulse animation for trending items */
+@keyframes sugg-pop{
+  0%{transform:translateX(-4px);opacity:0}
+  100%{transform:translateX(0);opacity:1}
+}
+.sugg-item{animation:sugg-pop .18s ease both;}
+.sugg-item:nth-child(2){animation-delay:.03s}
+.sugg-item:nth-child(3){animation-delay:.06s}
+.sugg-item:nth-child(4){animation-delay:.09s}
+.sugg-item:nth-child(5){animation-delay:.12s}
+.sugg-item:nth-child(6){animation-delay:.15s}
+
 /* Hero now playing */
 #np-hero{display:none;margin-bottom:22px}
 .hero-card{background:linear-gradient(135deg,var(--card),var(--hover));border:1px solid var(--border);border-radius:18px;padding:20px;display:flex;gap:18px;align-items:center;position:relative;overflow:hidden}
@@ -1355,6 +1507,8 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       <input id="q" type="text" placeholder="Cari artis atau judul lagu..." autocomplete="off" spellcheck="false">
       <button id="btn-search">Cari</button>
+      <!-- SEARCH SUGGESTIONS DROPDOWN -->
+      <div id="search-suggestions"></div>
     </div>
 
     <div id="np-hero">
@@ -2751,6 +2905,257 @@ function setBarImg(t){
 
 // ─── Controls ─────────────────────────────────────────────
 document.getElementById('btn-search').addEventListener('click',doSearch);
+
+// ─── SEARCH SUGGESTIONS ───────────────────────────────────
+(function initSearchSuggestions(){
+  const inp = document.getElementById('q');
+  const box = document.getElementById('search-suggestions');
+  if(!inp||!box) return;
+
+  const TRENDING = [
+    {q:'Taylor Swift',sub:'Pop · Trending'},
+    {q:'Coldplay',sub:'Alternative Rock · Trending'},
+    {q:'Ed Sheeran',sub:'Pop · Trending'},
+    {q:'Dewa 19',sub:'Rock Indonesia · Trending'},
+    {q:'Tulus',sub:'Pop Indonesia · Trending'},
+    {q:'Billie Eilish',sub:'Indie Pop · Trending'},
+    {q:'The Weeknd',sub:'R&B · Trending'},
+    {q:'Raisa',sub:'Pop Indonesia · Trending'},
+    {q:'Payung Teduh',sub:'Indie Folk · Trending'},
+    {q:'Harry Styles',sub:'Pop · Trending'},
+  ];
+
+  let _history = (() => {
+    try { return JSON.parse(localStorage.getItem('_srchHist')||'[]'); } catch(e){ return []; }
+  })();
+  const saveHist = (q) => {
+    _history = [q, ..._history.filter(h=>h!==q)].slice(0,12);
+    try { localStorage.setItem('_srchHist', JSON.stringify(_history)); } catch(e){}
+  };
+
+  let _focused = -1;
+  let _items = [];
+  let _debounceT = null;
+  let _abortCtrl = null;
+  let _isOpen = false;
+
+  function highlightMatch(text, query) {
+    if(!query) return esc(text);
+    const re = new RegExp('(' + query.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi');
+    return esc(text).replace(re, '<mark>$1</mark>');
+  }
+
+  function iconSVG(type) {
+    if(type==='trending') return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`;
+    if(type==='history') return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
+    if(type==='search') return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>`;
+    return '';
+  }
+  const arrowSVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>`;
+
+  function renderSuggestions(query, iTunesResults) {
+    box.innerHTML = '';
+    _items = [];
+    _focused = -1;
+    const q = query.trim();
+
+    if(!q) {
+      // Trending + history
+      if(_history.length) {
+        const lbl = document.createElement('div');
+        lbl.className = 'sugg-section-label';
+        lbl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Riwayat Pencarian`;
+        box.appendChild(lbl);
+        _history.slice(0,5).forEach(h => {
+          const el = mkItem({iconClass:'history', iconHTML:iconSVG('history'), mainText:esc(h), subText:'', q:h});
+          box.appendChild(el);
+          _items.push({el, q:h});
+        });
+        const div = document.createElement('div');
+        div.className = 'sugg-divider';
+        box.appendChild(div);
+      }
+      const lbl2 = document.createElement('div');
+      lbl2.className = 'sugg-section-label';
+      lbl2.innerHTML = `${iconSVG('trending')} Trending Sekarang`;
+      box.appendChild(lbl2);
+      TRENDING.slice(0,6).forEach(tr => {
+        const el = mkItem({iconClass:'trending', iconHTML:iconSVG('trending'), mainText:esc(tr.q), subText:tr.sub, q:tr.q});
+        box.appendChild(el);
+        _items.push({el, q:tr.q});
+      });
+    } else if(iTunesResults && iTunesResults.length) {
+      // iTunes results (max 6)
+      const lbl = document.createElement('div');
+      lbl.className = 'sugg-section-label';
+      lbl.innerHTML = `${iconSVG('search')} Hasil Pencarian`;
+      box.appendChild(lbl);
+      iTunesResults.slice(0,6).forEach(it => {
+        const thumb = (it.artworkUrl60||it.artworkUrl100||'').replace('60x60bb','100x100bb');
+        const title = it.trackName||'';
+        const artist = it.artistName||'';
+        const iconHTML = thumb ? `<div class="sugg-icon result"><img src="${esc(thumb)}" loading="lazy" onerror="this.parentNode.innerHTML='🎵'"></div>` : `<div class="sugg-icon result" style="font-size:1.2rem;display:flex;align-items:center;justify-content:center;">🎵</div>`;
+        const mainText = highlightMatch(title, q);
+        const subText = esc(artist);
+        const searchQ = `${artist} ${title}`;
+        const el = mkItem({iconClass:'', iconHTML:'', mainText, subText, q:searchQ, customIcon:iconHTML, direct:true, track:{
+          title, artist,
+          thumb:(it.artworkUrl100||'').replace('100x100bb','600x600bb'),
+          preview:it.previewUrl||null,
+          videoId:null, photo:null,
+          _query:`${artist}|||${title}|||${it.trackId||Math.random()}`
+        }});
+        box.appendChild(el);
+        _items.push({el, q:searchQ});
+      });
+    } else if(iTunesResults && iTunesResults.length===0) {
+      // Empty state
+      const empty = document.createElement('div');
+      empty.className = 'sugg-empty';
+      empty.innerHTML = `<span>🎵</span>Tidak ada hasil untuk "<strong>${esc(q)}</strong>"<br><small>Coba kata kunci lain</small>`;
+      box.appendChild(empty);
+    } else {
+      // Loading/typed state: show history matches + skeleton
+      const matches = _history.filter(h=>h.toLowerCase().includes(q.toLowerCase())).slice(0,3);
+      if(matches.length) {
+        const lbl = document.createElement('div');
+        lbl.className = 'sugg-section-label';
+        lbl.innerHTML = `${iconSVG('history')} Riwayat`;
+        box.appendChild(lbl);
+        matches.forEach(h => {
+          const el = mkItem({iconClass:'history', iconHTML:iconSVG('history'), mainText:highlightMatch(h,q), subText:'', q:h});
+          box.appendChild(el);
+          _items.push({el, q:h});
+        });
+        const div = document.createElement('div');
+        div.className = 'sugg-divider';
+        box.appendChild(div);
+      }
+      // Skeleton loaders
+      const lbl2 = document.createElement('div');
+      lbl2.className = 'sugg-section-label';
+      lbl2.innerHTML = `${iconSVG('search')} Mencari...`;
+      box.appendChild(lbl2);
+      for(let i=0;i<3;i++){
+        const sk = document.createElement('div');
+        sk.style.cssText = 'display:flex;align-items:center;gap:12px;padding:9px 16px;';
+        sk.innerHTML = `<div class="sk" style="width:36px;height:36px;border-radius:9px;flex-shrink:0;"></div><div style="flex:1;display:flex;flex-direction:column;gap:5px;"><div class="sk" style="height:10px;width:${55+i*15}%;border-radius:4px;"></div><div class="sk" style="height:8px;width:${30+i*10}%;border-radius:4px;"></div></div>`;
+        box.appendChild(sk);
+      }
+    }
+
+    // Footer keyboard hint
+    if(_items.length) {
+      const foot = document.createElement('div');
+      foot.className = 'sugg-footer';
+      foot.innerHTML = `<kbd>↑↓</kbd> Navigasi &nbsp;<kbd>↵</kbd> Pilih &nbsp;<kbd>Esc</kbd> Tutup`;
+      box.appendChild(foot);
+    }
+  }
+
+  function mkItem({iconClass, iconHTML, mainText, subText, q, customIcon, direct, track}) {
+    const el = document.createElement('div');
+    el.className = 'sugg-item';
+    const icon = customIcon || `<div class="sugg-icon ${iconClass}">${iconHTML}</div>`;
+    el.innerHTML = `${icon}<div class="sugg-text"><div class="sugg-main">${mainText}</div>${subText?`<div class="sugg-sub">${subText}</div>`:''}</div><div class="sugg-arrow">${arrowSVG}</div>`;
+    el.addEventListener('mousedown', e => {
+      e.preventDefault();
+      if(direct && track) {
+        closeBox();
+        loadPlay(track, null);
+      } else {
+        inp.value = q;
+        saveHist(q);
+        closeBox();
+        doSearch();
+      }
+    });
+    return el;
+  }
+
+  function openBox() {
+    _isOpen = true;
+    box.classList.add('open');
+  }
+  function closeBox() {
+    _isOpen = false;
+    box.classList.remove('open');
+    _focused = -1;
+    _items.forEach(it => it.el.classList.remove('focused'));
+  }
+
+  function moveFocus(dir) {
+    if(!_items.length) return;
+    _items.forEach(it => it.el.classList.remove('focused'));
+    _focused = (_focused + dir + _items.length) % _items.length;
+    _items[_focused].el.classList.add('focused');
+    _items[_focused].el.scrollIntoView({block:'nearest'});
+  }
+
+  async function fetchSuggestions(q) {
+    if(_abortCtrl) _abortCtrl.abort();
+    _abortCtrl = new AbortController();
+    // Show skeleton first
+    renderSuggestions(q, null);
+    openBox();
+    try {
+      const url = `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&entity=song&limit=10&country=ID`;
+      const res = await fetch(url, {signal:_abortCtrl.signal});
+      if(!res.ok) throw new Error('err');
+      const data = await res.json();
+      if(_isOpen) renderSuggestions(q, data.results||[]);
+    } catch(e) {
+      if(e.name!=='AbortError' && _isOpen) renderSuggestions(q, []);
+    }
+  }
+
+  inp.addEventListener('focus', () => {
+    const q = inp.value.trim();
+    if(!q) { renderSuggestions('', null); openBox(); }
+    else fetchSuggestions(q);
+  });
+
+  inp.addEventListener('input', () => {
+    const q = inp.value.trim();
+    clearTimeout(_debounceT);
+    if(!q) { renderSuggestions('', null); openBox(); return; }
+    renderSuggestions(q, null); // show skeleton immediately
+    openBox();
+    _debounceT = setTimeout(() => fetchSuggestions(q), 280);
+  });
+
+  inp.addEventListener('keydown', e => {
+    if(!_isOpen) return;
+    if(e.key==='ArrowDown'){e.preventDefault();moveFocus(1);}
+    else if(e.key==='ArrowUp'){e.preventDefault();moveFocus(-1);}
+    else if(e.key==='Enter'){
+      if(_focused>=0 && _items[_focused]){
+        e.stopImmediatePropagation();
+        _items[_focused].el.dispatchEvent(new MouseEvent('mousedown',{bubbles:true}));
+      } else {
+        const q = inp.value.trim();
+        if(q) saveHist(q);
+        closeBox();
+      }
+    }
+    else if(e.key==='Escape'){closeBox();}
+  });
+
+  // Close on outside click
+  document.addEventListener('mousedown', e => {
+    if(_isOpen && !box.contains(e.target) && e.target!==inp) closeBox();
+  });
+
+  // Hook doSearch to save history
+  const _origDoSearch = doSearch;
+  doSearch = function() {
+    const q = document.getElementById('q').value.trim();
+    if(q) saveHist(q);
+    closeBox();
+    _origDoSearch();
+  };
+})();
+
 document.getElementById('q').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
 document.getElementById('btn-play').addEventListener('click',()=>{if(!curTrack||!YTP)return;try{playing?YTP.pauseVideo():YTP.playVideo();}catch(e){}});
 document.getElementById('btn-next').addEventListener('click',playNext);
