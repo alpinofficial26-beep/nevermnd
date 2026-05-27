@@ -2709,8 +2709,9 @@ function _createPlayer(videoId) {
           _updateMediaSessionState('paused');
         }
         else if(e.data===YT.PlayerState.ENDED){
-          playing=false; setPB(false); cancelAnimationFrame(raf); stopBgPoller(); playNext();
+          playing=false; setPB(false); cancelAnimationFrame(raf); stopBgPoller();
           _updateMediaSessionState('none');
+          _bgPlayNext();
         }
       },
       onError(e){ if(e.data===101||e.data===150) toast('⚠️ Video diblokir, coba lagu lain'); }
@@ -2785,8 +2786,9 @@ function _claimMediaSession(track) {
     playing = false; setPB(false);
     navigator.mediaSession.playbackState = 'paused';
   });
-  navigator.mediaSession.setActionHandler('previoustrack', () => { playPrev(); });
-  navigator.mediaSession.setActionHandler('nexttrack',     () => { playNext(); });
+  // next/prev: panggil versi "silent" yang tidak buka UI fullscreen
+  navigator.mediaSession.setActionHandler('previoustrack', () => { _bgPlayPrev(); });
+  navigator.mediaSession.setActionHandler('nexttrack',     () => { _bgPlayNext(); });
   navigator.mediaSession.setActionHandler('stop', () => {
     try { if (YTP) YTP.stopVideo(); } catch(e){}
     if (_msAudio) { _msAudio.pause(); _msAudio.currentTime = 0; }
@@ -2814,6 +2816,123 @@ function _updateMediaSessionState(state) {
       });
     } catch(e){}
   }
+}
+// ─────────────────────────────────────────────────────────────
+
+// ─── Background-safe play (tanpa buka UI fullscreen) ─────────
+// loadPlay biasa memanggil openFS() dan DOM berat — tidak boleh
+// dipanggil dari Media Session handler (bukan user gesture).
+// Fungsi ini hanya update audio+bar tanpa sentuh UI besar.
+
+function _bgPlayNext() {
+  if (!curQueue.length) return;
+  const i = _qIdx();
+  const next = curQueue[i === -1 ? 0 : (i + 1) % curQueue.length];
+  if (next) loadPlayBg(next, currentPlaylistId);
+}
+
+function _bgPlayPrev() {
+  if (!curQueue.length) return;
+  const i = _qIdx();
+  const prev = curQueue[i === -1 ? 0 : (i - 1 + curQueue.length) % curQueue.length];
+  if (prev) loadPlayBg(prev, currentPlaylistId);
+}
+
+// Versi loadPlay yang aman dipanggil dari background/notifikasi
+async function loadPlayBg(track, fromPlId) {
+  cancelAnimationFrame(raf);
+  playing = false; cur = 0; tot = 0; curTrack = track; lyrs = [];
+  stopBgPoller();
+
+  // Update bar (selalu aman)
+  try {
+    setBarImg(track);
+    document.getElementById('bar-title').textContent = track.title;
+    document.getElementById('bar-artist').textContent = track.artist;
+  } catch(e) {}
+
+  // Update playlist view jika terbuka
+  try {
+    if (fromPlId && currentPlaylistId === fromPlId) renderPlaylistView(fromPlId);
+  } catch(e) {}
+
+  // Update Media Session metadata (nama lagu & artwork di notif)
+  if ('mediaSession' in navigator) {
+    const artworkList = [];
+    if (track.thumb) {
+      artworkList.push({ src: track.thumb, sizes: '512x512', type: 'image/jpeg' });
+      artworkList.push({ src: track.thumb, sizes: '128x128', type: 'image/jpeg' });
+    }
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title:  track.title  || 'Unknown',
+      artist: track.artist || 'Unknown',
+      album:  'ALVINVN Music',
+      artwork: artworkList
+    });
+    navigator.mediaSession.playbackState = 'playing';
+  }
+
+  // Pastikan audio senyap tetap jalan (jangan sampai hilang kepemilikan)
+  if (_msAudio && _msAudio.paused) _msAudio.play().catch(()=>{});
+
+  toast('⏭ ' + track.title);
+
+  // Cari video & putar
+  const searchQ = `${track.artist} ${track.title} official audio`;
+  const cl = cleanT(track.title);
+  const [videoId, lines] = await Promise.all([resolveVid(searchQ), fetchLyr(cl, track.artist)]);
+
+  let finalId = videoId;
+  if (!finalId) finalId = await resolveVid(`${track.artist} ${track.title}`);
+
+  if (finalId) {
+    // Destroy player lama dan buat baru langsung (autoplay via playerVars)
+    if (YTP) { try { YTP.destroy(); } catch(e){} YTP = null; }
+    document.getElementById('yt-player').innerHTML = '';
+    YTP = new YT.Player('yt-player', {
+      width: '1', height: '1', videoId: finalId,
+      playerVars: { autoplay: 1, controls: 0, playsinline: 1, rel: 0, modestbranding: 1 },
+      events: {
+        onReady(e) {
+          e.target.setVolume(parseInt(document.getElementById('vol').value));
+          e.target.playVideo();
+        },
+        onStateChange(e) {
+          if (e.data === YT.PlayerState.PLAYING) {
+            playing = true; setPB(true);
+            tot = YTP.getDuration(); tick();
+            _recordTrackStart(YTP.getCurrentTime() || 0, tot || 0);
+            startBgPoller();
+            _updateMediaSessionState('playing');
+          } else if (e.data === YT.PlayerState.PAUSED) {
+            playing = false; setPB(false); cancelAnimationFrame(raf); stopBgPoller();
+            _updateMediaSessionState('paused');
+          } else if (e.data === YT.PlayerState.ENDED) {
+            playing = false; setPB(false); cancelAnimationFrame(raf); stopBgPoller();
+            _updateMediaSessionState('none');
+            _bgPlayNext();
+          }
+        },
+        onError(e) {
+          if (e.data === 101 || e.data === 150) {
+            toast('⚠️ Video diblokir, melewati ke lagu berikutnya...');
+            setTimeout(() => _bgPlayNext(), 1500);
+          }
+        }
+      }
+    });
+  } else {
+    toast('❌ Video tidak ditemukan, melewati...');
+    setTimeout(() => _bgPlayNext(), 2000);
+  }
+
+  lyrs = lines || [];
+  // Update lirik di panel jika sedang terbuka
+  try {
+    document.getElementById('lyr-lines').innerHTML = lyrs.length ? '' : '<div class="lyr-empty"><i>😔</i>Lirik tidak tersedia</div>';
+    if (lyrs.length) syncLyr(0);
+    updateFSLyr();
+  } catch(e) {}
 }
 // ─────────────────────────────────────────────────────────────
 // Masalah: browser membekukan setInterval/setTimeout saat tab tidak aktif.
@@ -2922,7 +3041,8 @@ function _triggerNext() {
   playing = false;
   try { setPB(false); } catch(e){}
   cancelAnimationFrame(raf);
-  playNext();
+  // Gunakan _bgPlayNext agar aman dipanggil dari background
+  _bgPlayNext();
 }
 
 // Saat kembali ke tab: cek apakah lagu sudah/hampir selesai
