@@ -2697,12 +2697,28 @@ function _createPlayer(videoId) {
         if(e.data===YT.PlayerState.PLAYING){
           playing=true; setPB(true);
           tot=YTP.getDuration(); tick();
-          // Catat posisi & durasi untuk pelacakan background
           _recordTrackStart(YTP.getCurrentTime()||0, tot||0);
           startBgPoller();
+          // Update posisi di notifikasi OS
+          if('mediaSession' in navigator){
+            navigator.mediaSession.playbackState = 'playing';
+            try {
+              navigator.mediaSession.setPositionState({
+                duration: tot||0,
+                playbackRate: 1,
+                position: YTP.getCurrentTime()||0
+              });
+            } catch(e){}
+          }
         }
-        else if(e.data===YT.PlayerState.PAUSED){ playing=false; setPB(false); cancelAnimationFrame(raf); stopBgPoller(); }
-        else if(e.data===YT.PlayerState.ENDED){ playing=false; setPB(false); cancelAnimationFrame(raf); stopBgPoller(); playNext(); }
+        else if(e.data===YT.PlayerState.PAUSED){
+          playing=false; setPB(false); cancelAnimationFrame(raf); stopBgPoller();
+          if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+        }
+        else if(e.data===YT.PlayerState.ENDED){
+          playing=false; setPB(false); cancelAnimationFrame(raf); stopBgPoller(); playNext();
+          if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';
+        }
       },
       onError(e){ if(e.data===101||e.data===150) toast('⚠️ Video diblokir, coba lagu lain'); }
     }
@@ -2962,6 +2978,50 @@ async function loadPlay(track, fromPlId){
   setBarImg(track);
   document.getElementById('bar-title').textContent=track.title;
   document.getElementById('bar-artist').textContent=track.artist;
+
+  // ─── Media Session API ────────────────────────────────────
+  // Agar tombol di notifikasi OS (prev/play/pause/next) bisa berfungsi
+  if ('mediaSession' in navigator) {
+    // Artwork: coba dari thumb track, fallback ke placeholder
+    const artworkList = [];
+    if (track.thumb) {
+      artworkList.push({ src: track.thumb, sizes: '512x512', type: 'image/jpeg' });
+      artworkList.push({ src: track.thumb, sizes: '256x256', type: 'image/jpeg' });
+      artworkList.push({ src: track.thumb, sizes: '128x128', type: 'image/jpeg' });
+    }
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: track.title || 'Unknown',
+      artist: track.artist || 'Unknown',
+      album: 'ALVINVN Music',
+      artwork: artworkList
+    });
+
+    // Daftarkan action handler — ini yang membuat tombol di notif OS aktif
+    navigator.mediaSession.setActionHandler('play', () => {
+      try { if (YTP) YTP.playVideo(); } catch(e){}
+      playing = true; setPB(true);
+      navigator.mediaSession.playbackState = 'playing';
+    });
+    navigator.mediaSession.setActionHandler('pause', () => {
+      try { if (YTP) YTP.pauseVideo(); } catch(e){}
+      playing = false; setPB(false);
+      navigator.mediaSession.playbackState = 'paused';
+    });
+    navigator.mediaSession.setActionHandler('previoustrack', () => { playPrev(); });
+    navigator.mediaSession.setActionHandler('nexttrack', () => { playNext(); });
+    navigator.mediaSession.setActionHandler('stop', () => {
+      try { if (YTP) YTP.stopVideo(); } catch(e){}
+      playing = false; setPB(false);
+      navigator.mediaSession.playbackState = 'none';
+    });
+    // seekto opsional — aktifkan jika YTP tersedia
+    navigator.mediaSession.setActionHandler('seekto', (details) => {
+      try { if (YTP && details.seekTime != null) YTP.seekTo(details.seekTime, true); } catch(e){}
+    });
+
+    navigator.mediaSession.playbackState = 'playing';
+  }
+  // ─────────────────────────────────────────────────────────
 
   // Lyrics panel reset
   document.getElementById('lyr-lines').innerHTML='<div class="lyr-empty"><i>⏳</i>Mencari & memuat lagu...</div>';
