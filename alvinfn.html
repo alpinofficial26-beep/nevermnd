@@ -2694,9 +2694,9 @@ function _createPlayer(videoId) {
     events:{
       onReady(e){ e.target.setVolume(parseInt(document.getElementById('vol').value)); e.target.playVideo(); },
       onStateChange(e){
-        if(e.data===YT.PlayerState.PLAYING){ playing=true; setPB(true); tot=YTP.getDuration(); tick(); }
+        if(e.data===YT.PlayerState.PLAYING){ playing=true; setPB(true); tot=YTP.getDuration(); tick(); startBgPoller(); }
         else if(e.data===YT.PlayerState.PAUSED){ playing=false; setPB(false); cancelAnimationFrame(raf); }
-        else if(e.data===YT.PlayerState.ENDED){ playing=false; setPB(false); cancelAnimationFrame(raf); playNext(); }
+        else if(e.data===YT.PlayerState.ENDED){ playing=false; setPB(false); cancelAnimationFrame(raf); stopBgPoller(); playNext(); }
       },
       onError(e){ if(e.data===101||e.data===150) toast('⚠️ Video diblokir, coba lagu lain'); }
     }
@@ -2711,6 +2711,74 @@ function initPlayer(videoId) {
     else{ window._pendingVideoId=videoId; const check=setInterval(()=>{ if(window._ytApiReady){ clearInterval(check); resolve(); } },100); }
   });
 }
+
+// ─── Background Tab Autoplay Fix ─────────────────────────
+let _bgPoller = null;
+let _bgPollerLastTime = -1;
+let _bgPollerStuckCount = 0;
+
+function startBgPoller() {
+  stopBgPoller();
+  _bgPollerLastTime = -1;
+  _bgPollerStuckCount = 0;
+  _bgPoller = setInterval(() => {
+    if (!YTP || !playing) return;
+    try {
+      const state = YTP.getPlayerState();
+      // State 0 = ENDED
+      if (state === 0) {
+        stopBgPoller();
+        playing = false; setPB(false); cancelAnimationFrame(raf);
+        playNext();
+        return;
+      }
+      const curT = YTP.getCurrentTime() || 0;
+      const durT = YTP.getDuration() || 0;
+      // Hampir habis (< 1.5 detik sisa)
+      if (durT > 0 && curT > 0 && (durT - curT) < 1.5) {
+        if (_bgPollerStuckCount++ >= 2) {
+          stopBgPoller();
+          playing = false; setPB(false); cancelAnimationFrame(raf);
+          playNext();
+          return;
+        }
+      }
+      // Progress berhenti (tab background membekukan video)
+      if (_bgPollerLastTime === curT && curT > 0 && state === 1) {
+        _bgPollerStuckCount++;
+        if (_bgPollerStuckCount >= 5) {
+          try { YTP.playVideo(); } catch(e){}
+          _bgPollerStuckCount = 0;
+        }
+      } else {
+        _bgPollerStuckCount = 0;
+      }
+      _bgPollerLastTime = curT;
+    } catch(e) {}
+  }, 1000);
+}
+
+function stopBgPoller() {
+  if (_bgPoller) { clearInterval(_bgPoller); _bgPoller = null; }
+}
+
+// Saat tab kembali aktif, pastikan lagu tetap berjalan atau lanjut ke berikutnya
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && YTP) {
+    try {
+      const state = YTP.getPlayerState();
+      if (state === 0 && playing) {
+        // Lagu selesai saat di background, lanjut ke berikutnya
+        playing = false; setPB(false); cancelAnimationFrame(raf);
+        stopBgPoller();
+        playNext();
+      } else if (playing && state !== 1) {
+        // Sedang harusnya bermain tapi terhenti
+        try { YTP.playVideo(); } catch(e){}
+      }
+    } catch(e) {}
+  }
+});
 
 function setPB(p){
   document.getElementById('ico-play').style.display=p?'none':'block';
