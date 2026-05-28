@@ -62,25 +62,32 @@
     -webkit-text-fill-color: transparent;
   }
 
-  /* Spinner */
+  /* GIF Loader */
   .spin-wrap {
     display: flex; flex-direction: column;
     align-items: center; gap: 12px;
   }
-  .ring {
-    width: 36px; height: 36px;
-    border: 3px solid rgba(29,107,219,0.2);
-    border-top-color: #1D6BDB;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
+  .bird-gif {
+    width: 100px; height: 100px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 16px rgba(29,107,219,0.45));
+    animation: floatBird 2.4s ease-in-out infinite;
   }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes floatBird {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
   .load-text {
     font-size: 0.78rem;
     color: #3A4560;
     letter-spacing: 1px;
     text-transform: uppercase;
     font-weight: 600;
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
   }
 </style>
 </head>
@@ -96,7 +103,7 @@
     <span class="logo-name">ALVINVN</span>
   </div>
   <div class="spin-wrap">
-    <div class="ring"></div>
+    <img class="bird-gif" src="bird.gif" alt="Loading...">
     <span class="load-text">Memuat...</span>
   </div>
 </div>

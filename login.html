@@ -353,14 +353,11 @@ label {
 
 /* Loader spinner */
 .spinner {
-  width: 16px; height: 16px;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
+  width: 28px; height: 28px;
   display: none;
+  background: url('bird.gif') center/contain no-repeat;
+  filter: drop-shadow(0 0 6px rgba(255,255,255,0.4));
 }
-@keyframes spin { to { transform: rotate(360deg); } }
 .btn-submit.loading .btn-text { display: none; }
 .btn-submit.loading .spinner { display: block; }
 
