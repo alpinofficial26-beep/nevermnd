@@ -3515,22 +3515,17 @@ async function fetchLyr(title,artist){
   }catch(e){lyrCache[k]=[];return [];}
 }
 function pSynced(raw){
-  const INST_RE=/^(♪+|♫+|instrumental|interlude|intro|outro|solo|bridge|guitar\s*solo|piano\s*solo|drum\s*solo|chorus|hook|verse|pre-chorus|build|drop|break|music)[\s\.…]*$/i;
-  const lines=raw.split('\n').map(l=>{const m=l.match(/\[(\d+):(\d+\.?\d*)\](.*)/);return m?{time:parseInt(m[1])*60+parseFloat(m[2]),text:m[3].trim()}:null;}).filter(Boolean);
-  const result=[];
-  for(let i=0;i<lines.length;i++){
-    const l=lines[i];
-    const nextTime=i<lines.length-1?lines[i+1].time:l.time+5;
-    if(!l.text||INST_RE.test(l.text)){
-      result.push({time:l.time,text:'',instrumental:true,instLabel:'Instrumental'});
-    } else {
-      result.push(l);
-      if(nextTime-l.time>6&&i<lines.length-1){
-        result.push({time:l.time+1.5,text:'',instrumental:true,instLabel:'Instrumental'});
-      }
-    }
-  }
-  return result;
+  // Hanya tandai instrumental jika data lirik memang kosong [mm:ss.xx] atau berisi ♪/♫ saja
+  // Tidak pakai deteksi gap otomatis — tidak akurat
+  const INST_RE=/^[♪♫\s]*$/;
+  return raw.split('\n').map(l=>{
+    const m=l.match(/\[(\d+):(\d+\.?\d*)\](.*)/);
+    if(!m) return null;
+    const time=parseInt(m[1])*60+parseFloat(m[2]);
+    const text=m[3].trim();
+    if(INST_RE.test(text)) return {time,text:'',instrumental:true};
+    return {time,text};
+  }).filter(Boolean).filter(l=>l.instrumental||l.text);
 }
 function pPlain(raw){
   let t=0;
