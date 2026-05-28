@@ -428,6 +428,42 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
 .lyr-empty{text-align:center;padding:50px 18px;color:var(--muted);font-size:.82rem;line-height:1.8}
 .lyr-empty i{display:block;font-size:2.2rem;margin-bottom:10px;font-style:normal}
 
+/* Instrumental lines */
+.ll.instrumental{display:flex;align-items:center;gap:8px;padding:6px 0;cursor:default;}
+.ll.instrumental .inst-notes{display:flex;align-items:flex-end;gap:3px;}
+.ll.instrumental .inst-notes span{display:inline-block;width:3px;border-radius:3px;background:var(--muted);transition:all .35s;}
+.ll.instrumental.active .inst-notes span{background:var(--green);}
+.ll.instrumental.past .inst-notes span{background:var(--muted);opacity:.4;}
+.ll.instrumental .inst-label{font-size:.72rem;color:var(--muted);font-style:italic;letter-spacing:.5px;}
+.ll.instrumental.active .inst-label{color:var(--sub);}
+
+@keyframes inst-bar1{0%,100%{height:6px}50%{height:16px}}
+@keyframes inst-bar2{0%,100%{height:14px}50%{height:5px}}
+@keyframes inst-bar3{0%,100%{height:8px}50%{height:18px}}
+@keyframes inst-bar4{0%,100%{height:16px}50%{height:6px}}
+@keyframes inst-bar5{0%,100%{height:10px}50%{height:20px}}
+
+.ll.instrumental.active .inst-notes span:nth-child(1){animation:inst-bar1 .7s ease-in-out infinite;}
+.ll.instrumental.active .inst-notes span:nth-child(2){animation:inst-bar2 .6s ease-in-out infinite .1s;}
+.ll.instrumental.active .inst-notes span:nth-child(3){animation:inst-bar3 .8s ease-in-out infinite .05s;}
+.ll.instrumental.active .inst-notes span:nth-child(4){animation:inst-bar4 .65s ease-in-out infinite .15s;}
+.ll.instrumental.active .inst-notes span:nth-child(5){animation:inst-bar5 .75s ease-in-out infinite .08s;}
+
+/* Fullscreen instrumental lines */
+.fs-ll.instrumental{display:flex;align-items:center;gap:10px;cursor:default;}
+.fs-ll.instrumental .inst-notes{display:flex;align-items:flex-end;gap:4px;}
+.fs-ll.instrumental .inst-notes span{display:inline-block;width:4px;border-radius:3px;background:rgba(255,255,255,0.2);}
+.fs-ll.instrumental.active .inst-notes span{background:rgba(255,255,255,0.85);}
+.fs-ll.instrumental.past .inst-notes span{background:rgba(255,255,255,0.12);}
+.fs-ll.instrumental .inst-label{font-size:.85rem;color:rgba(255,255,255,0.35);font-style:italic;}
+.fs-ll.instrumental.active .inst-label{color:rgba(255,255,255,0.65);}
+
+.fs-ll.instrumental.active .inst-notes span:nth-child(1){animation:inst-bar1 .7s ease-in-out infinite;}
+.fs-ll.instrumental.active .inst-notes span:nth-child(2){animation:inst-bar2 .6s ease-in-out infinite .1s;}
+.fs-ll.instrumental.active .inst-notes span:nth-child(3){animation:inst-bar3 .8s ease-in-out infinite .05s;}
+.fs-ll.instrumental.active .inst-notes span:nth-child(4){animation:inst-bar4 .65s ease-in-out infinite .15s;}
+.fs-ll.instrumental.active .inst-notes span:nth-child(5){animation:inst-bar5 .75s ease-in-out infinite .08s;}
+
 /* PLAYER BAR */
 #bar{grid-area:bar;background:rgba(8,11,18,.96);backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 22px;gap:20px;z-index:10}
 .bar-track{display:flex;align-items:center;gap:12px;width:250px;flex-shrink:0;cursor:pointer;}
@@ -3479,12 +3515,28 @@ async function fetchLyr(title,artist){
   }catch(e){lyrCache[k]=[];return [];}
 }
 function pSynced(raw){
-  return raw.split('\n').map(l=>{const m=l.match(/\[(\d+):(\d+\.?\d*)\](.*)/);return m?{time:parseInt(m[1])*60+parseFloat(m[2]),text:m[3].trim()}:null;}).filter(Boolean).filter(l=>l.text);
+  const INST_RE=/^(♪+|♫+|instrumental|interlude|intro|outro|solo|bridge|guitar\s*solo|piano\s*solo|drum\s*solo|chorus|hook|verse|pre-chorus|build|drop|break|music)[\s\.…]*$/i;
+  const lines=raw.split('\n').map(l=>{const m=l.match(/\[(\d+):(\d+\.?\d*)\](.*)/);return m?{time:parseInt(m[1])*60+parseFloat(m[2]),text:m[3].trim()}:null;}).filter(Boolean);
+  const result=[];
+  for(let i=0;i<lines.length;i++){
+    const l=lines[i];
+    const nextTime=i<lines.length-1?lines[i+1].time:l.time+5;
+    if(!l.text||INST_RE.test(l.text)){
+      result.push({time:l.time,text:'',instrumental:true,instLabel:'Instrumental'});
+    } else {
+      result.push(l);
+      if(nextTime-l.time>6&&i<lines.length-1){
+        result.push({time:l.time+1.5,text:'',instrumental:true,instLabel:'Instrumental'});
+      }
+    }
+  }
+  return result;
 }
 function pPlain(raw){
   let t=0;
   return raw.split('\n').filter(l=>l.trim()).map(text=>{const e={time:t,text:text.trim()};t+=Math.min(5,Math.max(2,text.length/12));return e;});
 }
+function _instHTML(){return'<span class="inst-notes"><span style="height:6px"></span><span style="height:14px"></span><span style="height:8px"></span><span style="height:16px"></span><span style="height:10px"></span></span><span class="inst-label">♪ Instrumental</span>';}
 function syncLyr(ct){
   const el=document.getElementById('lyr-lines'); if(!el||!lyrs.length)return;
   let idx=0;
@@ -3492,8 +3544,16 @@ function syncLyr(ct){
   el.innerHTML='';
   lyrs.forEach((l,i)=>{
     const d=document.createElement('div');
-    d.className='ll '+(i===idx?'active':i<idx?'past':'upcoming');
-    d.textContent=l.text; d.addEventListener('click',()=>{if(YTP)YTP.seekTo(l.time);}); el.appendChild(d);
+    const state=i===idx?'active':i<idx?'past':'upcoming';
+    if(l.instrumental){
+      d.className='ll instrumental '+state;
+      d.innerHTML=_instHTML();
+    } else {
+      d.className='ll '+state;
+      d.textContent=l.text;
+      d.addEventListener('click',()=>{if(YTP)YTP.seekTo(l.time);});
+    }
+    el.appendChild(d);
   });
   const act=el.querySelectorAll('.ll')[idx];
   if(act)el.scrollTo({top:act.offsetTop-el.offsetHeight/2+act.offsetHeight/2,behavior:'smooth'});
@@ -3835,13 +3895,26 @@ let _trackColorIdx=0;
 function pickFSColor(){_trackColorIdx++;const c=FS_COLORS[_trackColorIdx%FS_COLORS.length];document.getElementById('fs-lyr').style.background=c;document.getElementById('fs-bg').style.background=c;}
 function openFS(){if(!curTrack)return;document.getElementById('fs-lyr').classList.add('open');document.getElementById('fs-artist-name').textContent=curTrack.title;updateFSLyr();updateFSProg();updateFSPB(playing);}
 function closeFS(){document.getElementById('fs-lyr').classList.remove('open');}
+function _fsInstHTML(){return'<span class="inst-notes"><span style="height:8px"></span><span style="height:18px"></span><span style="height:10px"></span><span style="height:20px"></span><span style="height:12px"></span></span><span class="inst-label">♪ Instrumental</span>';}
 function updateFSLyr(){
   const el=document.getElementById('fs-lyr-scroll');
   if(!lyrs.length){el.innerHTML='<div class="lyr-empty" style="color:rgba(255,255,255,0.4);padding-top:80px"><i>😔</i>Lirik tidak tersedia</div>';return;}
   let idx=0;
   for(let i=0;i<lyrs.length;i++){if(cur>=lyrs[i].time)idx=i;else break;}
   el.innerHTML='';
-  lyrs.forEach((l,i)=>{const d=document.createElement('div');d.className='fs-ll '+(i===idx?'active':i<idx?'past':'');d.textContent=l.text;d.addEventListener('click',()=>{if(YTP)YTP.seekTo(l.time);});el.appendChild(d);});
+  lyrs.forEach((l,i)=>{
+    const d=document.createElement('div');
+    const state=i===idx?'active':i<idx?'past':'';
+    if(l.instrumental){
+      d.className='fs-ll instrumental '+state;
+      d.innerHTML=_fsInstHTML();
+    } else {
+      d.className='fs-ll '+(i===idx?'active':i<idx?'past':'');
+      d.textContent=l.text;
+      d.addEventListener('click',()=>{if(YTP)YTP.seekTo(l.time);});
+    }
+    el.appendChild(d);
+  });
   const act=el.querySelectorAll('.fs-ll')[idx];
   if(act)el.scrollTo({top:act.offsetTop-el.offsetHeight/2+act.offsetHeight/2,behavior:'smooth'});
 }
@@ -3976,9 +4049,9 @@ function renderKineticLines(idx) {
   const stage   = document.getElementById('k-word-stage');
   if (!prevEl || !nextEl || !stage) return;
 
-  const prevLine = idx > 0 ? lyrs[idx - 1].text : '';
-  const curLine  = lyrs[idx].text;
-  const nextLine = idx < lyrs.length - 1 ? lyrs[idx + 1].text : '';
+  const prevLine = idx > 0 ? (lyrs[idx - 1].instrumental ? '♪' : lyrs[idx - 1].text) : '';
+  const curLine  = lyrs[idx].instrumental ? '' : lyrs[idx].text;
+  const nextLine = idx < lyrs.length - 1 ? (lyrs[idx + 1].instrumental ? '♪' : lyrs[idx + 1].text) : '';
 
   // Baris konteks
   prevEl.textContent = prevLine;
@@ -3996,6 +4069,17 @@ function renderKineticLines(idx) {
   // Buat elemen kata di stage — semuanya mulai tersembunyi
   stage.innerHTML = '';
   stage.classList.remove('k-stage-enter');
+
+  // Instrumental line: show animated bars in stage
+  if (lyrs[idx].instrumental) {
+    stage.innerHTML = '<div class="fs-ll instrumental active" style="justify-content:center;"><span class="inst-notes"><span style="height:8px"></span><span style="height:18px"></span><span style="height:10px"></span><span style="height:20px"></span><span style="height:12px"></span></span><span class="inst-label" style="color:rgba(255,255,255,0.6);font-size:1rem;">♪ Instrumental</span></div>';
+    _kWordTimestamps = [];
+    buildProgressDots(0);
+    void stage.offsetWidth;
+    stage.classList.add('k-stage-enter');
+    if (_kRafId) cancelAnimationFrame(_kRafId);
+    return;
+  }
 
   const words = curLine.trim().split(/\s+/).filter(Boolean);
   _kWordTimestamps = [];
