@@ -3484,13 +3484,18 @@ function _armSongTimer(){
     const state = _ytSafe(()=> YTP ? YTP.getPlayerState() : -1, -1);
     if(state === 2){ _nextGuarded = false; return; } // sedang pause, batalkan
     if(state === 1){
-      // Masih playing — periksa apakah benar sudah hampir habis
-      const ytCur = _ytSafe(()=>YTP.getCurrentTime(), 0);
+      // Masih playing — gunakan wall-clock untuk cek posisi real
+      // (YTP.getCurrentTime() bisa frozen saat tab background)
+      const wallElapsed = _playStartWall > 0 ? (Date.now() - _playStartWall) / 1000 : 0;
+      const posNowWall = _playStartPos + wallElapsed;
+      const ytCur = _ytSafe(()=>YTP.getCurrentTime(), posNowWall);
       const ytDur = _ytSafe(()=>YTP.getDuration(), duration);
-      if(ytDur > 0 && ytCur < ytDur - 3){
+      // Pilih posisi terbesar antara wall-clock dan YTP (salah satu bisa stuck)
+      const bestPos = Math.max(posNowWall, ytCur);
+      if(ytDur > 0 && bestPos < ytDur - 3){
         // Lagu belum selesai (mis. user seek mundur), arm ulang
         cur = ytCur; tot = ytDur;
-        _playStartWall = Date.now(); _playStartPos = cur;
+        _playStartWall = Date.now(); _playStartPos = bestPos;
         _nextGuarded = false;
         _armSongTimer(); return;
       }
@@ -3505,18 +3510,15 @@ function _startBgInterval(){
   _resumeAudioCtx();
   _bgInterval = setInterval(()=>{
     if(!playing) return;
-    const ytCur = _ytSafe(()=>YTP ? YTP.getCurrentTime() : 0, 0);
     const ytDur = _ytSafe(()=>YTP ? YTP.getDuration() : 0, 0);
-    if(ytCur > 0){ cur = ytCur; }
+    // Jika durasi baru tersedia dan belum di-arm, arm sekarang
     if(ytDur > 0 && (!tot || tot < 1)){
       tot = ytDur;
-      _playStartWall = Date.now(); _playStartPos = cur;
-      _armSongTimer(); // baru dapat durasi, arm sekarang
+      // Hanya arm jika belum ada timer aktif
+      if(!_songTimer) _armSongTimer();
     }
-    // Update wall-clock start setiap detik supaya timer drift minimal
-    if(_playStartWall > 0 && ytCur > 0){
-      _playStartWall = Date.now(); _playStartPos = ytCur;
-    }
+    // JANGAN reset _playStartWall di sini — timer wall-clock harus tetap berjalan
+    // dari titik awal agar remaining bisa habis secara alami
     const state = _ytSafe(()=>YTP ? YTP.getPlayerState() : -1, -1);
     if(state === 0 && !_nextGuarded){
       _nextGuarded = true;
@@ -3552,6 +3554,16 @@ document.addEventListener('visibilitychange', ()=>{
       const state = _ytSafe(()=>YTP.getPlayerState(), -1);
       if(state === 0){ _clearSongTimer(); playing=false; setPB(false); playNext(); return; }
       if(state === 1 || state === -1){
+        // Cek apakah lagu sudah seharusnya selesai berdasarkan wall-clock
+        if(tot > 0 && _playStartWall > 0){
+          const wallElapsed = (Date.now() - _playStartWall) / 1000;
+          const estimatedPos = _playStartPos + wallElapsed;
+          if(estimatedPos >= tot - 1){
+            // Durasi terlampaui — anggap lagu sudah selesai
+            _clearSongTimer(); playing=false; setPB(false); cancelAnimationFrame(raf);
+            playNext(); return;
+          }
+        }
         // Sinkronkan posisi kembali lalu restart rAF
         const ytCur = _ytSafe(()=>YTP.getCurrentTime(), cur);
         if(ytCur > 0){ cur = ytCur; _playStartWall = Date.now(); _playStartPos = cur; }
