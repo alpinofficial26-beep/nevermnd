@@ -2661,6 +2661,10 @@ let playing = false, cur = 0, tot = 0, raf = null;
 let lyrCache = {}, lyrs = [], curTrack = null;
 let curQueue = []; // lagu yang sedang dalam antrian putar
 
+// ── Pre-fetch cache: simpan videoId lagu berikutnya saat foreground ──────────
+let _prefetchCache = {}; // key: track._query → { videoId, lyrs }
+let _prefetching   = new Set(); // query yang sedang di-fetch
+
 // Multi-playlist: { [id]: { id, name, cover, tracks: [] } }
 let playlists = {};
 let currentPlaylistId = null; // playlist yang sedang dibuka di view
@@ -3382,6 +3386,10 @@ function _createPlayer(videoId) {
           _armSongTimer();
           _stopBgInterval();
           if(document.hidden) _startBgInterval();
+          // Update UI untuk track yang mungkin diganti lewat loadVideoById (background)
+          if(curTrack){ _updateUIForTrack(curTrack); }
+          // Pre-fetch lagu berikutnya saat kita masih foreground
+          if(!document.hidden) setTimeout(_prefetchNext, 3000);
         }
         else if(e.data===YT.PlayerState.PAUSED){ playing=false; setPB(false); cancelAnimationFrame(raf); _stopBgInterval(); _clearSongTimer(); }
         else if(e.data===YT.PlayerState.ENDED){
@@ -3632,18 +3640,66 @@ function _qIdx(){
   if(!curTrack||!curQueue.length) return -1;
   return curQueue.findIndex(t => t._query === curTrack._query);
 }
+
+// Pre-fetch videoId + lirik untuk lagu berikutnya saat masih foreground
+async function _prefetchNext(){
+  if(!curQueue.length||!curTrack) return;
+  const i = _qIdx();
+  if(i === -1) return;
+  const next = curQueue[(i+1) % curQueue.length];
+  if(!next || _prefetchCache[next._query] || _prefetching.has(next._query)) return;
+  _prefetching.add(next._query);
+  try{
+    const searchQ = `${next.artist} ${next.title} official audio`;
+    const cl = cleanT(next.title);
+    const [videoId, lines] = await Promise.all([
+      resolveVid(searchQ).then(v => v || resolveVid(`${next.artist} ${next.title}`)),
+      fetchLyr(cl, next.artist)
+    ]);
+    _prefetchCache[next._query] = { videoId: videoId||null, lyrs: lines||[] };
+  } catch(e){}
+  _prefetching.delete(next._query);
+}
 function playNext(){
   if(!curQueue.length) return;
-  // Jika tab sedang di background, jangan jalankan loadPlay (fetch akan di-throttle)
-  // Tandai _pendingNext — visibilitychange akan eksekusi saat kembali foreground
+  const i = _qIdx();
+  const next = curQueue[i===-1 ? 0 : (i+1) % curQueue.length];
+  if(!next) return;
+
+  // Jika tab background DAN sudah ada cache → pakai loadVideoById (tanpa fetch!)
+  if(document.hidden && _prefetchCache[next._query]){
+    const cached = _prefetchCache[next._query];
+    delete _prefetchCache[next._query];
+    if(cached.videoId && YTP){
+      try{
+        // Reset state
+        cancelAnimationFrame(raf); _stopBgInterval(); _clearSongTimer();
+        playing=false; cur=0; tot=0;
+        _nextGuarded=false; _pendingNext=false;
+        curTrack = next;
+        lyrs = cached.lyrs || [];
+        _curSpeedFactor = detectSpeedFactor(next.title);
+        _setupMediaSession(next);
+        // Ganti video di player yang sudah ada — TANPA fetch baru
+        YTP.loadVideoById({ videoId: cached.videoId, suggestedQuality: 'small' });
+        // onStateChange PLAYING akan arm timer & interval otomatis
+        return;
+      } catch(e){}
+    }
+    // videoId tidak ada di cache, tandai pending
+    _pendingNext = true;
+    return;
+  }
+
+  // Jika tab background tapi TIDAK ada cache → tandai pending
   if(document.hidden){
     _pendingNext = true;
     return;
   }
+
+  // Foreground: loadPlay normal
   _pendingNext = false;
-  const i = _qIdx();
-  const next = curQueue[i===-1 ? 0 : (i+1) % curQueue.length];
-  if (next) loadPlay(next, currentPlaylistId);
+  loadPlay(next, currentPlaylistId);
 }
 function playPrev(){
   if(!curQueue.length) return;
@@ -3702,6 +3758,22 @@ async function resolveVid(query){
     if(!res.ok)return null;
     const data=await res.json(); return data.videoId||null;
   }catch(e){ return null; }
+}
+
+// Update UI (bar + media session) untuk track yang baru — dipanggil setelah loadVideoById di background
+function _updateUIForTrack(track){
+  try{
+    setBarImg(track);
+    document.getElementById('bar-title').textContent = track.title;
+    document.getElementById('bar-artist').textContent = track.artist;
+    document.getElementById('h-title').textContent = track.title;
+    document.getElementById('h-artist').textContent = track.artist;
+    setHeroImg(track);
+    _setupMediaSession(track);
+    if(currentPlaylistId) renderPlaylistView(currentPlaylistId);
+    // Update lirik jika sudah ada di cache
+    if(lyrs && lyrs.length){ syncLyr(0); updateFSLyr(); }
+  }catch(e){}
 }
 
 async function loadPlay(track, fromPlId){
