@@ -3384,7 +3384,10 @@ function _createPlayer(videoId) {
           if(document.hidden) _startBgInterval();
         }
         else if(e.data===YT.PlayerState.PAUSED){ playing=false; setPB(false); cancelAnimationFrame(raf); _stopBgInterval(); _clearSongTimer(); }
-        else if(e.data===YT.PlayerState.ENDED){ playing=false; setPB(false); cancelAnimationFrame(raf); _stopBgInterval(); _clearSongTimer(); playNext(); }
+        else if(e.data===YT.PlayerState.ENDED){
+          playing=false; setPB(false); cancelAnimationFrame(raf); _stopBgInterval(); _clearSongTimer();
+          if(!_nextGuarded){ _nextGuarded=true; setTimeout(()=>{ _nextGuarded=false; },2000); playNext(); }
+        }
       },
       onError(e){ if(e.data===101||e.data===150) toast('⚠️ Video diblokir, coba lagu lain'); }
     }
@@ -3411,7 +3414,14 @@ function setPB(p){
 let _audioCtx = null;
 let _silentSrc = null;
 function _ensureAudioCtx(){
-  if(_audioCtx && _audioCtx.state !== 'closed') return;
+  // Jika sudah ada dan berjalan, cukup resume jika suspended
+  if(_audioCtx && _audioCtx.state !== 'closed'){
+    if(_audioCtx.state === 'suspended'){
+      try{ _audioCtx.resume(); }catch(e){}
+    }
+    // Jika silent source sudah berhenti (tidak loop), buat ulang
+    return;
+  }
   try{
     _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     // Buffer sunyi 3 detik, loop terus — cukup untuk mencegah tab dibekukan
@@ -3421,10 +3431,15 @@ function _ensureAudioCtx(){
     _silentSrc.loop = true;
     _silentSrc.connect(_audioCtx.destination);
     _silentSrc.start(0);
+    // Jika suspended (sebelum user gesture), resume segera
+    if(_audioCtx.state === 'suspended') _audioCtx.resume().catch(()=>{});
   }catch(e){}
 }
 function _resumeAudioCtx(){
-  try{ if(_audioCtx && _audioCtx.state==='suspended') _audioCtx.resume(); }catch(e){}
+  try{
+    if(_audioCtx && _audioCtx.state==='suspended') _audioCtx.resume();
+    else _ensureAudioCtx();
+  }catch(e){}
 }
 
 // ─── Timer lagu berbasis setTimeout — tidak bergantung iframe sama sekali ───────
@@ -3433,35 +3448,53 @@ let _songTimer     = null;  // setTimeout handle
 let _playStartWall = 0;     // Date.now() saat mulai/resume
 let _playStartPos  = 0;     // posisi (detik) saat mulai/resume
 let _bgInterval    = null;  // interval cadangan
+let _nextGuarded   = false; // cegah playNext() ganda dalam satu siklus
 
 function _clearSongTimer(){ if(_songTimer){ clearTimeout(_songTimer); _songTimer=null; } }
+
+// Ambil posisi & durasi dari YTP secara aman (tidak throw)
+function _ytSafe(fn, fallback){ try{ return fn(); }catch(e){ return fallback; } }
 
 // Pasang timer: setelah (durasi - posisi) detik, panggil playNext()
 function _armSongTimer(){
   _clearSongTimer();
   let duration = tot;
   if((!duration || duration < 1) && curTrack && curTrack.duration) duration = curTrack.duration;
+  // Jika durasi belum diketahui, coba ambil dari YTP
+  if((!duration || duration < 1) && YTP){
+    const d = _ytSafe(()=>YTP.getDuration(), 0);
+    if(d > 0){ tot = d; duration = d; }
+  }
+  // Durasi masih belum ada — bgInterval akan memasang timer begitu durasi tersedia
   if(!duration || duration < 1) return;
 
-  const remaining = Math.max((duration - cur) * 1000, 500);
+  // Hitung sisa waktu dari wall-clock agar akurat meski tab di-background
+  let elapsed = 0;
+  if(_playStartWall > 0) elapsed = (Date.now() - _playStartWall) / 1000;
+  const posNow = _playStartPos + elapsed;
+  const remaining = Math.max((duration - posNow) * 1000, 500);
 
   _songTimer = setTimeout(()=>{
     _songTimer = null;
-    if(!playing) return;
-    try{
-      if(YTP){
-        const state = YTP.getPlayerState();
-        if(state === 2) return; // pause, jangan skip
-        if(state === 0){ playing=false; setPB(false); cancelAnimationFrame(raf); _stopBgInterval(); playNext(); return; }
-        const ytCur = YTP.getCurrentTime()||0;
-        const ytDur = YTP.getDuration()||duration;
-        if(ytDur > 0 && ytCur < ytDur - 3){
-          // lagu belum selesai (seek mundur?), arm ulang
-          cur = ytCur; tot = ytDur;
-          _armSongTimer(); return;
-        }
+    if(!playing || _nextGuarded) return;
+    _nextGuarded = true;
+    setTimeout(()=>{ _nextGuarded = false; }, 2000); // reset guard setelah 2 detik
+
+    // Cek state YTP jika tersedia (aman di background)
+    const state = _ytSafe(()=> YTP ? YTP.getPlayerState() : -1, -1);
+    if(state === 2){ _nextGuarded = false; return; } // sedang pause, batalkan
+    if(state === 1){
+      // Masih playing — periksa apakah benar sudah hampir habis
+      const ytCur = _ytSafe(()=>YTP.getCurrentTime(), 0);
+      const ytDur = _ytSafe(()=>YTP.getDuration(), duration);
+      if(ytDur > 0 && ytCur < ytDur - 3){
+        // Lagu belum selesai (mis. user seek mundur), arm ulang
+        cur = ytCur; tot = ytDur;
+        _playStartWall = Date.now(); _playStartPos = cur;
+        _nextGuarded = false;
+        _armSongTimer(); return;
       }
-    }catch(e){}
+    }
     playing=false; setPB(false); cancelAnimationFrame(raf); _stopBgInterval();
     playNext();
   }, remaining);
@@ -3472,19 +3505,26 @@ function _startBgInterval(){
   _resumeAudioCtx();
   _bgInterval = setInterval(()=>{
     if(!playing) return;
-    try{
-      if(YTP){
-        const ytCur = YTP.getCurrentTime();
-        const ytDur = YTP.getDuration();
-        if(ytCur > 0) cur = ytCur;
-        if(ytDur > 0 && (!tot || tot < 1)){
-          tot = ytDur;
-          _armSongTimer(); // baru dapat durasi, arm sekarang
-        }
-        const state = YTP.getPlayerState();
-        if(state === 0){ _stopBgInterval(); _clearSongTimer(); playing=false; setPB(false); cancelAnimationFrame(raf); playNext(); }
-      }
-    }catch(e){}
+    const ytCur = _ytSafe(()=>YTP ? YTP.getCurrentTime() : 0, 0);
+    const ytDur = _ytSafe(()=>YTP ? YTP.getDuration() : 0, 0);
+    if(ytCur > 0){ cur = ytCur; }
+    if(ytDur > 0 && (!tot || tot < 1)){
+      tot = ytDur;
+      _playStartWall = Date.now(); _playStartPos = cur;
+      _armSongTimer(); // baru dapat durasi, arm sekarang
+    }
+    // Update wall-clock start setiap detik supaya timer drift minimal
+    if(_playStartWall > 0 && ytCur > 0){
+      _playStartWall = Date.now(); _playStartPos = ytCur;
+    }
+    const state = _ytSafe(()=>YTP ? YTP.getPlayerState() : -1, -1);
+    if(state === 0 && !_nextGuarded){
+      _nextGuarded = true;
+      setTimeout(()=>{ _nextGuarded = false; }, 2000);
+      _stopBgInterval(); _clearSongTimer();
+      playing=false; setPB(false); cancelAnimationFrame(raf);
+      playNext();
+    }
   }, 1000);
 }
 
@@ -3492,21 +3532,33 @@ function _stopBgInterval(){ if(_bgInterval){ clearInterval(_bgInterval); _bgInte
 
 document.addEventListener('visibilitychange', ()=>{
   if(document.hidden){
+    // Tab masuk background — hentikan rAF, pasang fallback timer & interval
     cancelAnimationFrame(raf);
     if(playing){
-      try{ if(YTP){ cur=YTP.getCurrentTime()||cur; if(!tot||tot<1) tot=YTP.getDuration()||tot; } }catch(e){}
-      _playStartWall=Date.now(); _playStartPos=cur;
-      _armSongTimer();       // timer berbasis setTimeout
-      _startBgInterval();    // interval cadangan
+      const ytCur = _ytSafe(()=>YTP ? YTP.getCurrentTime() : cur, cur);
+      const ytDur = _ytSafe(()=>YTP ? YTP.getDuration() : tot, tot);
+      if(ytCur > 0) cur = ytCur;
+      if(ytDur > 0) tot = ytDur;
+      _playStartWall = Date.now(); _playStartPos = cur;
+      _ensureAudioCtx();    // pastikan AudioContext tetap hidup
+      _armSongTimer();      // timer berbasis setTimeout
+      _startBgInterval();   // interval cadangan & sinkronisasi posisi
     }
   } else {
+    // Tab kembali foreground
     _stopBgInterval();
+    _nextGuarded = false;
     if(YTP && playing){
-      try{
-        const state = YTP.getPlayerState();
-        if(state === 0){ _clearSongTimer(); playing=false; setPB(false); playNext(); return; }
-        if(state === 1){ tick(); }
-      }catch(e){ tick(); }
+      const state = _ytSafe(()=>YTP.getPlayerState(), -1);
+      if(state === 0){ _clearSongTimer(); playing=false; setPB(false); playNext(); return; }
+      if(state === 1 || state === -1){
+        // Sinkronkan posisi kembali lalu restart rAF
+        const ytCur = _ytSafe(()=>YTP.getCurrentTime(), cur);
+        if(ytCur > 0){ cur = ytCur; _playStartWall = Date.now(); _playStartPos = cur; }
+        _clearSongTimer(); // matikan timer lama — tick() akan arm ulang
+        tick();
+        _armSongTimer();
+      }
     }
   }
 });
@@ -3622,7 +3674,8 @@ async function resolveVid(query){
 }
 
 async function loadPlay(track, fromPlId){
-  cancelAnimationFrame(raf); _stopBgInterval(); playing=false; cur=0; tot=0; curTrack=track; lyrs=[];
+  cancelAnimationFrame(raf); _stopBgInterval(); _clearSongTimer(); playing=false; cur=0; tot=0; curTrack=track; lyrs=[];
+  _nextGuarded=false;
   _ensureAudioCtx();
   _setupMediaSession(track);
   // Update now playing in playlist view
