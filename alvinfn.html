@@ -2393,12 +2393,10 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
   </div>
 </div>
 
-<!-- Hidden YT (fallback / lirik sync) -->
+<!-- Hidden YT -->
 <div id="yt-wrap" style="position:fixed;bottom:-9999px;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none">
   <div id="yt-player"></div>
 </div>
-<!-- Audio element utama — tetap jalan di background, tidak seperti iframe -->
-<audio id="bg-audio" preload="none" crossorigin="anonymous" style="display:none"></audio>
 
 <!-- Cover Photo Modal -->
 <div id="ph-modal" class="modal-bg" style="display:none">
@@ -3354,68 +3352,6 @@ document.getElementById('ph-save').addEventListener('click', () => {
 });
 
 // ─── YouTube IFrame API ───────────────────────────────────
-// ─── Audio Player — <audio> HTML5 + Piped API (tetap jalan di background) ───────
-// Piped instance list — dicoba urut sampai berhasil
-const PIPED_INSTANCES = [
-  'https://pipedapi.kavin.rocks',
-  'https://api.piped.projectsegfau.lt',
-  'https://piped-api.garudalinux.org',
-  'https://pipedapi.adminforge.de',
-];
-
-let AUD = null; // <audio> element
-let _currentVideoId = null;
-
-function _getAudio(){
-  if(!AUD){ AUD = document.getElementById('bg-audio'); _bindAudioEvents(); }
-  return AUD;
-}
-
-function _bindAudioEvents(){
-  if(!AUD) return;
-  AUD.addEventListener('playing', ()=>{
-    playing=true; setPB(true);
-    tot = AUD.duration||tot;
-    cur = AUD.currentTime||cur;
-    _playStartWall=Date.now(); _playStartPos=cur;
-    tick(); _armSongTimer();
-    _stopBgInterval();
-    if(document.hidden) _startBgInterval();
-  });
-  AUD.addEventListener('pause', ()=>{
-    if(AUD.ended) return; // biarkan 'ended' handle
-    playing=false; setPB(false); cancelAnimationFrame(raf); _stopBgInterval(); _clearSongTimer();
-  });
-  AUD.addEventListener('ended', ()=>{
-    playing=false; setPB(false); cancelAnimationFrame(raf); _stopBgInterval(); _clearSongTimer();
-    playNext();
-  });
-  AUD.addEventListener('timeupdate', ()=>{
-    if(playing){ cur=AUD.currentTime; tot=AUD.duration||tot; }
-  });
-  AUD.addEventListener('error', ()=>{
-    toast('⚠️ Gagal memuat audio, coba lagu lain');
-  });
-}
-
-// Ambil URL audio stream dari Piped API
-async function _resolveAudioUrl(videoId){
-  for(const base of PIPED_INSTANCES){
-    try{
-      const res = await fetch(`${base}/streams/${videoId}`, {signal: AbortSignal.timeout(7000)});
-      if(!res.ok) continue;
-      const data = await res.json();
-      // Pilih audio stream kualitas terbaik (m4a/webm, bukan video)
-      const streams = (data.audioStreams||[]).sort((a,b)=>(b.bitrate||0)-(a.bitrate||0));
-      const best = streams.find(s=>s.mimeType&&(s.mimeType.includes('audio'))) || streams[0];
-      if(best && best.url) return best.url;
-    }catch(e){ continue; }
-  }
-  return null;
-}
-
-// YT IFrame masih dipakai untuk sinkronisasi lirik saat foreground (opsional)
-// tapi audio utama dari <audio> element
 (function loadYTApi() {
   if (document.getElementById('yt-api-script')) return;
   const tag = document.createElement('script');
@@ -3426,66 +3362,43 @@ async function _resolveAudioUrl(videoId){
 
 window.onYouTubeIframeAPIReady = function() {
   window._ytApiReady = true;
-  if (window._pendingVideoId) { _createYTPSilent(window._pendingVideoId); window._pendingVideoId = null; }
+  if (window._pendingVideoId) { _createPlayer(window._pendingVideoId); window._pendingVideoId = null; }
 };
 
-// YTP hanya untuk sinkronisasi posisi lirik yang akurat (muted, no autoplay sound)
-function _createYTPSilent(videoId) {
+function _createPlayer(videoId) {
   if (YTP) { try { YTP.destroy(); } catch(e){} YTP = null; }
   document.getElementById('yt-player').innerHTML = '';
-  try {
-    YTP = new YT.Player('yt-player', {
-      width:'1', height:'1', videoId,
-      playerVars:{ autoplay:0, controls:0, playsinline:1, rel:0, mute:1 },
-      events:{
-        onReady(e){ /* tidak autoplay — hanya untuk referensi */ },
-        onError(e){}
-      }
-    });
-  } catch(e){ YTP = null; }
-}
-
-async function initPlayer(videoId) {
-  if(!videoId) return;
-  _currentVideoId = videoId;
-  playing=false; cur=0; tot=0;
-  cancelAnimationFrame(raf); _clearSongTimer(); _stopBgInterval();
-
-  const audio = _getAudio();
-  audio.pause();
-  audio.src = '';
-  audio.load();
-
-  // Mulai resolve audio URL secara paralel
-  const audioUrlPromise = _resolveAudioUrl(videoId);
-
-  // Set volume dari slider
-  const volVal = parseInt(document.getElementById('vol').value)||100;
-  audio.volume = volVal / 100;
-
-  toast('🔍 Memuat audio...');
-  const audioUrl = await audioUrlPromise;
-
-  if(_currentVideoId !== videoId) return; // lagu sudah diganti saat loading
-
-  if(audioUrl){
-    audio.src = audioUrl;
-    audio.load();
-    try{
-      await audio.play();
-      toast('▶️ Memutar lagu...');
-    }catch(e){
-      // Autoplay blocked — user harus tap play manual
-      toast('▶️ Tap play untuk memutar');
-      setPB(false);
+  YTP = new YT.Player('yt-player', {
+    width:'1', height:'1', videoId,
+    playerVars:{ autoplay:1, controls:0, playsinline:1, rel:0, modestbranding:1 },
+    events:{
+      onReady(e){ e.target.setVolume(parseInt(document.getElementById('vol').value)); e.target.playVideo(); },
+      onStateChange(e){
+        if(e.data===YT.PlayerState.PLAYING){
+          playing=true; setPB(true);
+          try{ tot=YTP.getDuration(); cur=YTP.getCurrentTime()||cur; }catch(ex){}
+          _playStartWall=Date.now(); _playStartPos=cur;
+          tick();
+          _armSongTimer();
+          _stopBgInterval();
+          if(document.hidden) _startBgInterval();
+        }
+        else if(e.data===YT.PlayerState.PAUSED){ playing=false; setPB(false); cancelAnimationFrame(raf); _stopBgInterval(); _clearSongTimer(); }
+        else if(e.data===YT.PlayerState.ENDED){ playing=false; setPB(false); cancelAnimationFrame(raf); _stopBgInterval(); _clearSongTimer(); playNext(); }
+      },
+      onError(e){ if(e.data===101||e.data===150) toast('⚠️ Video diblokir, coba lagu lain'); }
     }
-  } else {
-    toast('⚠️ Gagal mendapat audio. Coba lagu lain.');
-  }
+  });
 }
 
-// YTP = null sekarang (tidak dipakai untuk audio)
-// Tapi kode yang memanggil YTP.getCurrentTime() masih ada — biarkan fallback ke cur
+function initPlayer(videoId) {
+  playing=false; cur=0; tot=0; cancelAnimationFrame(raf);
+  if(!videoId) return Promise.resolve();
+  return new Promise(resolve=>{
+    if(window._ytApiReady&&window.YT&&window.YT.Player){ _createPlayer(videoId); resolve(); }
+    else{ window._pendingVideoId=videoId; const check=setInterval(()=>{ if(window._ytApiReady){ clearInterval(check); resolve(); } },100); }
+  });
+}
 
 function setPB(p){
   document.getElementById('ico-play').style.display=p?'none':'block';
@@ -3536,13 +3449,14 @@ function _armSongTimer(){
     _songTimer = null;
     if(!playing) return;
     try{
-      const a=_getAudio();
-      if(a){
-        if(!a.ended && a.paused) return; // pause, jangan skip
-        if(a.ended){ playing=false; setPB(false); cancelAnimationFrame(raf); _stopBgInterval(); playNext(); return; }
-        const ytCur = a.currentTime||0;
-        const ytDur = a.duration||duration;
+      if(YTP){
+        const state = YTP.getPlayerState();
+        if(state === 2) return; // pause, jangan skip
+        if(state === 0){ playing=false; setPB(false); cancelAnimationFrame(raf); _stopBgInterval(); playNext(); return; }
+        const ytCur = YTP.getCurrentTime()||0;
+        const ytDur = YTP.getDuration()||duration;
         if(ytDur > 0 && ytCur < ytDur - 3){
+          // lagu belum selesai (seek mundur?), arm ulang
           cur = ytCur; tot = ytDur;
           _armSongTimer(); return;
         }
@@ -3560,15 +3474,15 @@ function _startBgInterval(){
     if(!playing) return;
     try{
       if(YTP){
-        const a=_getAudio();
-        const ytCur = a.currentTime;
-        const ytDur = a.duration;
+        const ytCur = YTP.getCurrentTime();
+        const ytDur = YTP.getDuration();
         if(ytCur > 0) cur = ytCur;
         if(ytDur > 0 && (!tot || tot < 1)){
           tot = ytDur;
-          _armSongTimer();
+          _armSongTimer(); // baru dapat durasi, arm sekarang
         }
-        if(a.ended){ _stopBgInterval(); _clearSongTimer(); playing=false; setPB(false); cancelAnimationFrame(raf); playNext(); }
+        const state = YTP.getPlayerState();
+        if(state === 0){ _stopBgInterval(); _clearSongTimer(); playing=false; setPB(false); cancelAnimationFrame(raf); playNext(); }
       }
     }catch(e){}
   }, 1000);
@@ -3580,7 +3494,7 @@ document.addEventListener('visibilitychange', ()=>{
   if(document.hidden){
     cancelAnimationFrame(raf);
     if(playing){
-      try{ const _a=_getAudio(); cur=_a.currentTime||cur; if(!tot||tot<1) tot=_a.duration||tot; }catch(e){}
+      try{ if(YTP){ cur=YTP.getCurrentTime()||cur; if(!tot||tot<1) tot=YTP.getDuration()||tot; } }catch(e){}
       _playStartWall=Date.now(); _playStartPos=cur;
       _armSongTimer();       // timer berbasis setTimeout
       _startBgInterval();    // interval cadangan
@@ -3589,10 +3503,9 @@ document.addEventListener('visibilitychange', ()=>{
     _stopBgInterval();
     if(YTP && playing){
       try{
-        const a=_getAudio();
-        if(a.ended){ _clearSongTimer(); playing=false; setPB(false); playNext(); return; }
-        if(!a.paused){ tick(); }
-        else if(playing){ tick(); }
+        const state = YTP.getPlayerState();
+        if(state === 0){ _clearSongTimer(); playing=false; setPB(false); playNext(); return; }
+        if(state === 1){ tick(); }
       }catch(e){ tick(); }
     }
   }
@@ -3602,11 +3515,10 @@ function tick(){
   cancelAnimationFrame(raf);
   _stopBgInterval();
   _playStartWall=Date.now();
-  const _a=_getAudio(); _playStartPos=_a.currentTime||cur;
+  try{ if(YTP){ _playStartPos=YTP.getCurrentTime()||cur; } else { _playStartPos=cur; } }catch(e){ _playStartPos=cur; }
   (function loop(){
-    if(!playing) return;
-    const a=_getAudio();
-    cur=a.currentTime||cur; tot=a.duration||tot;
+    if(!playing||!YTP) return;
+    try{ cur=YTP.getCurrentTime()||cur; tot=YTP.getDuration()||tot; }catch(e){}
     updProg(); syncLyr(cur);
     raf=requestAnimationFrame(loop);
   })();
@@ -3624,11 +3536,11 @@ function _setupMediaSession(track){
       return url ? [{src:url,sizes:'300x300',type:'image/jpeg'}] : [];
     })()
   });
-  navigator.mediaSession.setActionHandler('play', ()=>{ const a=_getAudio(); if(a){ a.play(); playing=true; setPB(true); tick(); _armSongTimer(); } });
-  navigator.mediaSession.setActionHandler('pause', ()=>{ const a=_getAudio(); if(a){ a.pause(); playing=false; setPB(false); cancelAnimationFrame(raf); _stopBgInterval(); _clearSongTimer(); } });
+  navigator.mediaSession.setActionHandler('play', ()=>{ if(YTP){ YTP.playVideo(); playing=true; setPB(true); tick(); _armSongTimer(); } });
+  navigator.mediaSession.setActionHandler('pause', ()=>{ if(YTP){ YTP.pauseVideo(); playing=false; setPB(false); cancelAnimationFrame(raf); _stopBgInterval(); _clearSongTimer(); } });
   navigator.mediaSession.setActionHandler('nexttrack', ()=>{ playNext(); });
   navigator.mediaSession.setActionHandler('previoustrack', ()=>{ playPrev(); });
-  navigator.mediaSession.setActionHandler('seekto', (d)=>{ const a=_getAudio(); if(a&&d.seekTime!=null){ a.currentTime=d.seekTime; cur=d.seekTime; _armSongTimer(); } });
+  navigator.mediaSession.setActionHandler('seekto', (d)=>{ if(YTP&&d.seekTime!=null){ YTP.seekTo(d.seekTime,true); cur=d.seekTime; _armSongTimer(); } });
 }
 
 function ft(s){ if(!s||isNaN(s))return'0:00'; return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'); }
@@ -3862,7 +3774,7 @@ function syncLyr(ct){
     } else {
       d.className='ll '+state;
       d.textContent=l.text;
-      d.addEventListener('click',()=>{ const _la=_getAudio(); if(_la){ _la.currentTime=l.time; cur=l.time; _armSongTimer(); } });
+      d.addEventListener('click',()=>{if(YTP)YTP.seekTo(l.time);});
     }
     el.appendChild(d);
   });
@@ -3895,8 +3807,8 @@ document.getElementById('btn-search').addEventListener('click',doSearch);
     const sign = _lyrOffset > 0 ? '+' : '';
     val.textContent = sign + _lyrOffset.toFixed(1) + 's';
     // Re-sync lirik langsung dengan posisi saat ini
-    if(lyrs.length){
-      try{ syncLyr(_getAudio().currentTime||cur); }catch(e){}
+    if(lyrs.length && YTP && typeof YTP.getCurrentTime === 'function'){
+      try{ syncLyr(YTP.getCurrentTime()); }catch(e){}
     }
   });
 })();
@@ -4155,17 +4067,16 @@ document.getElementById('btn-search').addEventListener('click',doSearch);
 document.getElementById('q').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
 document.getElementById('btn-play').addEventListener('click',()=>{
   _ensureAudioCtx(); _resumeAudioCtx();
-  if(!curTrack)return;
-  const _audEl=_getAudio(); if(!_audEl.src) return;
+  if(!curTrack||!YTP)return;
   try{
-    if(playing){ _audEl.pause(); }
-    else { _audEl.play(); _playStartWall=Date.now(); _playStartPos=cur; }
+    if(playing){ YTP.pauseVideo(); }
+    else { YTP.playVideo(); _playStartWall=Date.now(); _playStartPos=cur; }
   }catch(e){}
 });
 document.getElementById('btn-next').addEventListener('click',playNext);
 document.getElementById('btn-prev').addEventListener('click',playPrev);
-document.getElementById('prog-track').addEventListener('click',e=>{if(!tot)return;const r=e.currentTarget.getBoundingClientRect();const seekTo=((e.clientX-r.left)/r.width)*tot;const _sa=_getAudio();if(_sa)_sa.currentTime=seekTo; cur=seekTo; _armSongTimer();});
-document.getElementById('vol').addEventListener('input',e=>{ const _va=_getAudio(); if(_va) _va.volume=parseInt(e.target.value)/100; });
+document.getElementById('prog-track').addEventListener('click',e=>{if(!YTP||!tot)return;const r=e.currentTarget.getBoundingClientRect();const seekTo=((e.clientX-r.left)/r.width)*tot;if(YTP)YTP.seekTo(seekTo); cur=seekTo; _armSongTimer();});
+document.getElementById('vol').addEventListener('input',e=>{if(YTP)YTP.setVolume(parseInt(e.target.value));});
 document.getElementById('h-add-pl').addEventListener('click',()=>{ if(curTrack) openAddSongModal(curTrack); });
 
 // New Playlist modal Enter key
@@ -4247,7 +4158,7 @@ function updateFSLyr(){
     } else {
       d.className='fs-ll '+(i===idx?'active':i<idx?'past':'');
       d.textContent=l.text;
-      d.addEventListener('click',()=>{ const _la=_getAudio(); if(_la){ _la.currentTime=l.time; cur=l.time; _armSongTimer(); } });
+      d.addEventListener('click',()=>{if(YTP)YTP.seekTo(l.time);});
     }
     el.appendChild(d);
   });
@@ -4267,16 +4178,15 @@ document.getElementById('fs-back').addEventListener('click', () => {
 });
 document.getElementById('fs-btn-play').addEventListener('click',()=>{
   _ensureAudioCtx(); _resumeAudioCtx();
-  if(!curTrack)return;
-  const _faudEl=_getAudio(); if(!_faudEl.src) return;
+  if(!curTrack||!YTP)return;
   try{
-    if(playing){ _faudEl.pause(); }
-    else { _faudEl.play(); _playStartWall=Date.now(); _playStartPos=cur; }
+    if(playing){ YTP.pauseVideo(); }
+    else { YTP.playVideo(); _playStartWall=Date.now(); _playStartPos=cur; }
   }catch(e){}
 });
 document.getElementById('fs-btn-next').addEventListener('click',playNext);
 document.getElementById('fs-btn-prev').addEventListener('click',playPrev);
-document.getElementById('fs-prog-track').addEventListener('click',e=>{if(!tot)return;const r=e.currentTarget.getBoundingClientRect();const seekTo=((e.clientX-r.left)/r.width)*tot;const _fsa=_getAudio();if(_fsa)_fsa.currentTime=seekTo; cur=seekTo; _armSongTimer();});
+document.getElementById('fs-prog-track').addEventListener('click',e=>{if(!YTP||!tot)return;const r=e.currentTarget.getBoundingClientRect();const seekTo=((e.clientX-r.left)/r.width)*tot;YTP.seekTo(seekTo); cur=seekTo; _armSongTimer();});
 
 // ─── PURE LYRICS MODE ─────────────────────────────────────
 let _pureModeActive = false;
