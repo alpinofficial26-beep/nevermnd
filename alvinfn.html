@@ -3449,6 +3449,7 @@ let _playStartWall = 0;     // Date.now() saat mulai/resume
 let _playStartPos  = 0;     // posisi (detik) saat mulai/resume
 let _bgInterval    = null;  // interval cadangan
 let _nextGuarded   = false; // cegah playNext() ganda dalam satu siklus
+let _pendingNext   = false; // lagu sudah selesai di background, tunggu foreground untuk lanjut
 
 function _clearSongTimer(){ if(_songTimer){ clearTimeout(_songTimer); _songTimer=null; } }
 
@@ -3550,6 +3551,17 @@ document.addEventListener('visibilitychange', ()=>{
     // Tab kembali foreground
     _stopBgInterval();
     _nextGuarded = false;
+
+    // Jika lagu sudah selesai saat background, langsung lanjut sekarang
+    if(_pendingNext){
+      _pendingNext = false;
+      _clearSongTimer();
+      const i = _qIdx();
+      const next = curQueue[i===-1 ? 0 : (i+1) % curQueue.length];
+      if(next) loadPlay(next, currentPlaylistId);
+      return;
+    }
+
     if(YTP && playing){
       const state = _ytSafe(()=>YTP.getPlayerState(), -1);
       if(state === 0){ _clearSongTimer(); playing=false; setPB(false); playNext(); return; }
@@ -3622,6 +3634,13 @@ function _qIdx(){
 }
 function playNext(){
   if(!curQueue.length) return;
+  // Jika tab sedang di background, jangan jalankan loadPlay (fetch akan di-throttle)
+  // Tandai _pendingNext — visibilitychange akan eksekusi saat kembali foreground
+  if(document.hidden){
+    _pendingNext = true;
+    return;
+  }
+  _pendingNext = false;
   const i = _qIdx();
   const next = curQueue[i===-1 ? 0 : (i+1) % curQueue.length];
   if (next) loadPlay(next, currentPlaylistId);
@@ -3688,6 +3707,7 @@ async function resolveVid(query){
 async function loadPlay(track, fromPlId){
   cancelAnimationFrame(raf); _stopBgInterval(); _clearSongTimer(); playing=false; cur=0; tot=0; curTrack=track; lyrs=[];
   _nextGuarded=false;
+  _pendingNext=false;
   _ensureAudioCtx();
   _setupMediaSession(track);
   // Update now playing in playlist view
