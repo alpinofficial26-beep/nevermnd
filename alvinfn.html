@@ -428,6 +428,34 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
 .lyr-empty{text-align:center;padding:50px 18px;color:var(--muted);font-size:.82rem;line-height:1.8}
 .lyr-empty i{display:block;font-size:2.2rem;margin-bottom:10px;font-style:normal}
 
+/* Lyrics timing offset bar */
+#lyr-offset-bar{
+  display:none;
+  align-items:center;
+  gap:8px;
+  padding:8px 14px;
+  background:var(--green-dim);
+  border-bottom:1px solid rgba(29,107,219,0.2);
+  font-size:.72rem;
+  color:var(--sub);
+  flex-shrink:0;
+}
+#lyr-offset-bar.show{display:flex;}
+#lyr-offset-bar label{color:var(--green);font-weight:700;white-space:nowrap;font-size:.7rem;}
+#lyr-offset-slider{
+  flex:1;-webkit-appearance:none;height:3px;
+  background:var(--hover);border-radius:4px;outline:none;cursor:pointer;
+}
+#lyr-offset-slider::-webkit-slider-thumb{
+  -webkit-appearance:none;width:14px;height:14px;
+  background:var(--green);border-radius:50%;cursor:pointer;
+  box-shadow:0 0 6px rgba(29,107,219,0.5);
+}
+#lyr-offset-val{
+  font-family:var(--fm);font-size:.68rem;color:var(--green);
+  font-weight:700;min-width:34px;text-align:right;
+}
+
 /* Instrumental lines */
 .ll.instrumental{display:flex;align-items:center;gap:8px;padding:6px 0;cursor:default;}
 .ll.instrumental .inst-notes{display:flex;align-items:flex-end;gap:3px;}
@@ -2316,6 +2344,12 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
     </button>
     </div>
   </div>
+  <!-- Timing offset bar untuk speed up / slowed -->
+  <div id="lyr-offset-bar">
+    <label>⚡ Offset Lirik</label>
+    <input type="range" id="lyr-offset-slider" min="-5" max="5" step="0.05" value="0">
+    <span id="lyr-offset-val">0.0s</span>
+  </div>
   <div class="lyr-body">
     <div class="lyr-fade-t"></div>
     <div id="lyr-lines"><div class="lyr-empty"><i>🎤</i>Lirik muncul saat lagu diputar</div></div>
@@ -3481,6 +3515,18 @@ async function loadPlay(track, fromPlId){
   const searchQ=`${track.artist} ${track.title} official audio`; toast('🔍 Mencari video...');
   // Deteksi apakah lagu ini speed up atau slowed, lalu sesuaikan timing lirik
   _curSpeedFactor = detectSpeedFactor(track.title);
+  _lyrOffset = 0;
+  // Tampilkan/sembunyikan offset bar
+  const _offsetBar = document.getElementById('lyr-offset-bar');
+  const _offsetSlider = document.getElementById('lyr-offset-slider');
+  const _offsetVal = document.getElementById('lyr-offset-val');
+  if(_curSpeedFactor !== 1.0){
+    if(_offsetBar) _offsetBar.classList.add('show');
+    if(_offsetSlider){ _offsetSlider.value = 0; }
+    if(_offsetVal) _offsetVal.textContent = '0.0s';
+  } else {
+    if(_offsetBar) _offsetBar.classList.remove('show');
+  }
   const cl=cleanT(track.title);
   const [videoId,lines]=await Promise.all([resolveVid(searchQ),fetchLyr(cl,track.artist)]);
   if(videoId){
@@ -3502,13 +3548,15 @@ async function loadPlay(track, fromPlId){
 // Speed up  → audio lebih cepat → timestamp lirik original harus dibagi faktor (>1)
 // Slowed    → audio lebih lambat → timestamp lirik original harus dibagi faktor (<1)
 function detectSpeedFactor(title){
-  if(/[\(\[\s•\|\-\u2013\u2014]*(speed[\s_-]?up|sped[\s_-]?up|spedup|nightcore|faster)/i.test(title)) return 1.25;
-  if(/[\(\[\s•\|\-\u2013\u2014]*(slow(?:ed)?(?:\s*[\+&]\s*reverb)?|reverb(?:\s*[\+&]\s*slow(?:ed)?)?|lofi|lo[\s_-]fi|ambient)/i.test(title)) return 0.8;
+  if(/[\(\[\s•\|\-\u2013\u2014]*(speed[\s_-]?up|sped[\s_-]?up|spedup|nightcore|faster)/i.test(title)) return 1.15;
+  if(/[\(\[\s•\|\-\u2013\u2014]*(slow(?:ed)?(?:\s*[\+&]\s*reverb)?|reverb(?:\s*[\+&]\s*slow(?:ed)?)?|lofi|lo[\s_-]fi|ambient)/i.test(title)) return 0.85;
   return 1.0;
 }
 
 // Faktor kecepatan lagu yang sedang diputar (global)
 let _curSpeedFactor = 1.0;
+// Offset manual lirik dalam detik (bisa negatif = maju, positif = mundur)
+let _lyrOffset = 0;
 
 function cleanT(t){
   return t
@@ -3575,8 +3623,10 @@ function pPlain(raw, speedFactor){
 function _instHTML(){return'<span class="inst-notes"><span style="height:6px"></span><span style="height:14px"></span><span style="height:8px"></span><span style="height:16px"></span><span style="height:10px"></span></span><span class="inst-label">♪ Instrumental</span>';}
 function syncLyr(ct){
   const el=document.getElementById('lyr-lines'); if(!el||!lyrs.length)return;
+  // Terapkan offset manual dari slider
+  const adjustedCt = ct + (_lyrOffset||0);
   let idx=0;
-  for(let i=0;i<lyrs.length;i++){if(ct>=lyrs[i].time)idx=i;else break;}
+  for(let i=0;i<lyrs.length;i++){if(adjustedCt>=lyrs[i].time)idx=i;else break;}
   el.innerHTML='';
   lyrs.forEach((l,i)=>{
     const d=document.createElement('div');
@@ -3609,6 +3659,22 @@ function setBarImg(t){
 
 // ─── Controls ─────────────────────────────────────────────
 document.getElementById('btn-search').addEventListener('click',doSearch);
+
+// ─── Lyrics offset slider ─────────────────────────────────
+(function initOffsetSlider(){
+  const slider = document.getElementById('lyr-offset-slider');
+  const val = document.getElementById('lyr-offset-val');
+  if(!slider||!val) return;
+  slider.addEventListener('input', function(){
+    _lyrOffset = parseFloat(this.value);
+    const sign = _lyrOffset > 0 ? '+' : '';
+    val.textContent = sign + _lyrOffset.toFixed(1) + 's';
+    // Re-sync lirik langsung dengan posisi saat ini
+    if(lyrs.length && YTP && typeof YTP.getCurrentTime === 'function'){
+      try{ syncLyr(YTP.getCurrentTime()); }catch(e){}
+    }
+  });
+})();
 
 // ─── SEARCH SUGGESTIONS ───────────────────────────────────
 (function initSearchSuggestions(){
