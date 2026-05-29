@@ -3500,6 +3500,9 @@ function cleanT(t){
   return t.replace(/\(official.*?\)/gi,'').replace(/\[official.*?\]/gi,'')
     .replace(/official (music |lyric |audio )?/gi,'').replace(/\(lyrics?\)/gi,'')
     .replace(/\(audio\)/gi,'').replace(/ft\.?.+/gi,'').replace(/feat\.?.+/gi,'')
+    // Hapus label versi: speed up, slowed, reverb, nightcore, dll.
+    .replace(/[\(\[]\s*(speed\s*up|sped\s*up|slowed|slowed\s*\+?\s*reverb|reverb|nightcore|lofi|lo-?fi|bass\s*boosted?|pitched?\s*up|pitched?\s*down|extended|remix|edit|version|ver\.?|tiktok|viral)\s*[\)\]]/gi,'')
+    .replace(/[-–—]\s*(speed\s*up|sped\s*up|slowed|slowed\s*\+?\s*reverb|reverb|nightcore|lofi|lo-?fi|bass\s*boosted?)\s*$/gi,'')
     .replace(/\s+/g,' ').trim();
 }
 
