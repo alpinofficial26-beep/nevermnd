@@ -3374,9 +3374,9 @@ function _createPlayer(videoId) {
     events:{
       onReady(e){ e.target.setVolume(parseInt(document.getElementById('vol').value)); e.target.playVideo(); },
       onStateChange(e){
-        if(e.data===YT.PlayerState.PLAYING){ playing=true; setPB(true); tot=YTP.getDuration(); tick(); }
-        else if(e.data===YT.PlayerState.PAUSED){ playing=false; setPB(false); cancelAnimationFrame(raf); }
-        else if(e.data===YT.PlayerState.ENDED){ playing=false; setPB(false); cancelAnimationFrame(raf); playNext(); }
+        if(e.data===YT.PlayerState.PLAYING){ playing=true; setPB(true); tot=YTP.getDuration(); tick(); _stopBgInterval(); if(document.hidden) _startBgInterval(); }
+        else if(e.data===YT.PlayerState.PAUSED){ playing=false; setPB(false); cancelAnimationFrame(raf); _stopBgInterval(); }
+        else if(e.data===YT.PlayerState.ENDED){ playing=false; setPB(false); cancelAnimationFrame(raf); _stopBgInterval(); playNext(); }
       },
       onError(e){ if(e.data===101||e.data===150) toast('⚠️ Video diblokir, coba lagu lain'); }
     }
@@ -3396,16 +3396,76 @@ function setPB(p){
   document.getElementById('ico-play').style.display=p?'none':'block';
   document.getElementById('ico-pause').style.display=p?'block':'none';
   updateFSPB(p);
+  if('mediaSession' in navigator) navigator.mediaSession.playbackState = p ? 'playing' : 'paused';
 }
+
+// ─── Background polling interval (fallback saat tab di background) ───────────
+let _bgInterval = null;
+function _startBgInterval(){
+  if(_bgInterval) return;
+  _bgInterval = setInterval(()=>{
+    if(!playing||!YTP) return;
+    try{
+      const state = YTP.getPlayerState();
+      // YT.PlayerState.ENDED === 0
+      if(state === 0){ playing=false; setPB(false); cancelAnimationFrame(raf); clearInterval(_bgInterval); _bgInterval=null; playNext(); return; }
+      cur = YTP.getCurrentTime()||cur;
+      tot = YTP.getDuration()||tot;
+      updProg(); syncLyr(cur);
+    }catch(e){}
+  }, 1000);
+}
+function _stopBgInterval(){ if(_bgInterval){ clearInterval(_bgInterval); _bgInterval=null; } }
+
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){
+    // Tab masuk background: rAF dibekukan browser, aktifkan polling interval
+    cancelAnimationFrame(raf);
+    if(playing) _startBgInterval();
+  } else {
+    // Tab kembali ke foreground: hentikan polling, cek apakah lagu sudah selesai
+    _stopBgInterval();
+    if(YTP){
+      try{
+        const state = YTP.getPlayerState();
+        if(state === 0 && playing){ playing=false; setPB(false); playNext(); }
+        else if(state === 1){ playing=true; tick(); }
+      }catch(e){}
+    }
+  }
+});
 
 function tick(){
   cancelAnimationFrame(raf);
+  _stopBgInterval();
   (function loop(){
     if(!playing||!YTP)return;
     try{ cur=YTP.getCurrentTime()||cur; tot=YTP.getDuration()||tot; }catch(e){}
     updProg(); syncLyr(cur);
     raf=requestAnimationFrame(loop);
   })();
+  // Mulai bg interval sebagai safety net
+  if(!document.hidden) _stopBgInterval();
+  else _startBgInterval();
+}
+
+// ─── Media Session API (kontrol dari notifikasi OS / lockscreen) ──────────────
+function _setupMediaSession(track){
+  if(!('mediaSession' in navigator)) return;
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: track.title||'',
+    artist: track.artist||'',
+    album: '',
+    artwork: (()=>{
+      const url = track.artworkUrl||track.img||track.cover||'';
+      return url ? [{src:url,sizes:'300x300',type:'image/jpeg'}] : [];
+    })()
+  });
+  navigator.mediaSession.setActionHandler('play', ()=>{ if(YTP){ YTP.playVideo(); playing=true; setPB(true); tick(); } });
+  navigator.mediaSession.setActionHandler('pause', ()=>{ if(YTP){ YTP.pauseVideo(); playing=false; setPB(false); cancelAnimationFrame(raf); _stopBgInterval(); } });
+  navigator.mediaSession.setActionHandler('nexttrack', ()=>{ playNext(); });
+  navigator.mediaSession.setActionHandler('previoustrack', ()=>{ playPrev(); });
+  navigator.mediaSession.setActionHandler('seekto', (d)=>{ if(YTP&&d.seekTime!=null){ YTP.seekTo(d.seekTime,true); cur=d.seekTime; } });
 }
 
 function ft(s){ if(!s||isNaN(s))return'0:00'; return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'); }
@@ -3487,7 +3547,8 @@ async function resolveVid(query){
 }
 
 async function loadPlay(track, fromPlId){
-  cancelAnimationFrame(raf); playing=false; cur=0; tot=0; curTrack=track; lyrs=[];
+  cancelAnimationFrame(raf); _stopBgInterval(); playing=false; cur=0; tot=0; curTrack=track; lyrs=[];
+  _setupMediaSession(track);
   // Update now playing in playlist view
   if (fromPlId && currentPlaylistId === fromPlId) renderPlaylistView(fromPlId);
 
