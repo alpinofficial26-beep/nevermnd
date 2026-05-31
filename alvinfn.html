@@ -1049,7 +1049,7 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
     display:flex;align-items:center;justify-content:space-between;
     padding:12px 14px 8px;gap:6px;
   }
-  #fs-back,#fs-pure-btn,#fs-bg-btn,#fs-style-btn{
+  #fs-back,#fs-pure-btn,#fs-bg-btn,#fs-style-btn,#fs-translate-btn{
     width:34px;height:34px;flex-shrink:0;
   }
   #fs-track-info{flex:1;min-width:0;text-align:center;overflow:hidden}
@@ -1246,6 +1246,38 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
 #fs-style-btn:hover { background: rgba(0,0,0,0.5); }
 #fs-style-btn svg { width: 18px; height: 18px; }
 #fs-style-btn.active { color: var(--green); box-shadow: 0 0 12px rgba(29,107,219,.5); }
+
+/* Fullscreen translate button */
+#fs-translate-btn {
+  background: rgba(0,0,0,0.3); border: none; border-radius: 50%;
+  width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: rgba(255,255,255,0.75); transition: all .2s;
+  position: relative;
+}
+#fs-translate-btn:hover { background: rgba(0,0,0,0.5); color: #fff; }
+#fs-translate-btn.active { color: var(--green); box-shadow: 0 0 12px rgba(29,107,219,.4); background: rgba(29,107,219,0.2); }
+#fs-translate-btn svg { width: 18px; height: 18px; }
+#fs-translate-btn .btn-spinner { width:13px;height:13px;border:2px solid rgba(255,255,255,0.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite; }
+
+/* Fullscreen translation lines */
+.fs-ll-translation {
+  display: block;
+  font-size: 1rem;
+  font-weight: 400;
+  color: rgba(255,255,255,0.35);
+  font-style: italic;
+  letter-spacing: 0;
+  line-height: 1.4;
+  padding: 2px 0 10px;
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: opacity .3s ease, max-height .3s ease;
+}
+#fs-lyr-scroll.show-translation .fs-ll-translation { opacity: 1; max-height: 60px; }
+.fs-ll.active ~ .fs-ll-translation,
+.fs-ll-wrap:has(.fs-ll.active) .fs-ll-translation { color: rgba(255,255,255,0.55); }
+.fs-ll-wrap { display: flex; flex-direction: column; }
 
 /* ══════════════════════════════════════════════════════════
    KINETIC TYPOGRAPHY MODE — Word-by-word, music-synced
@@ -2573,6 +2605,9 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
     </button>
     <button id="fs-style-btn" title="Gaya teks lirik" onclick="openStylePicker()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h10M4 17h6"/><circle cx="19" cy="17" r="2"/><path d="M19 15v-3"/></svg>
+    </button>
+    <button id="fs-translate-btn" title="Terjemahan lirik" onclick="toggleFSTranslation()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>
     </button>
   </div>
   <!-- Kinetic Typography Stage -->
@@ -4089,7 +4124,7 @@ async function fetchTranslations() {
 Lirik:
 ${linesText.join('\n')}`;
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch(`${WORKER}/translate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -4558,7 +4593,22 @@ function updateFSLyr(){
   let idx=0;
   for(let i=0;i<lyrs.length;i++){if(cur>=lyrs[i].time)idx=i;else break;}
   el.innerHTML='';
+
+  // Apply show-translation class if enabled
+  if(_translationEnabled) el.classList.add('show-translation');
+  else el.classList.remove('show-translation');
+
+  // Sync FS translate btn state
+  const fsTBtn = document.getElementById('fs-translate-btn');
+  if(fsTBtn) fsTBtn.classList.toggle('active', _translationEnabled);
+
+  const songKey = _currentSongKeyForTranslation;
+  const translations = _translationCache[songKey] || null;
+
   lyrs.forEach((l,i)=>{
+    const wrap=document.createElement('div');
+    wrap.className='fs-ll-wrap';
+
     const d=document.createElement('div');
     const state=i===idx?'active':i<idx?'past':'';
     if(l.instrumental){
@@ -4569,10 +4619,30 @@ function updateFSLyr(){
       d.textContent=l.text;
       d.addEventListener('click',()=>{if(YTP)YTP.seekTo(l.time);});
     }
-    el.appendChild(d);
+    wrap.appendChild(d);
+
+    // Translation element for FS
+    const tEl=document.createElement('div');
+    tEl.className='fs-ll-translation';
+    if(translations && translations[i]) tEl.textContent=translations[i];
+    wrap.appendChild(tEl);
+
+    el.appendChild(wrap);
   });
   const act=el.querySelectorAll('.fs-ll')[idx];
-  if(act)el.scrollTo({top:act.offsetTop-el.offsetHeight/2+act.offsetHeight/2,behavior:'smooth'});
+  if(act){
+    const actWrap=act.closest('.fs-ll-wrap')||act;
+    el.scrollTo({top:actWrap.offsetTop-el.offsetHeight/2+actWrap.offsetHeight/2,behavior:'smooth'});
+  }
+}
+
+function toggleFSTranslation() {
+  // Reuse the same toggle logic, synced with sidebar button
+  toggleLyricsTranslation();
+  // Sync FS button state
+  const fsTBtn = document.getElementById('fs-translate-btn');
+  if(fsTBtn) fsTBtn.classList.toggle('active', _translationEnabled);
+  updateFSLyr();
 }
 function updateFSProg(){document.getElementById('fs-t-cur').textContent=ft(cur);document.getElementById('fs-t-tot').textContent=ft(tot);document.getElementById('fs-prog-fill').style.width=(tot?(cur/tot)*100:0)+'%';}
 function updateFSPB(p){document.getElementById('fs-ico-play').style.display=p?'none':'block';document.getElementById('fs-ico-pause').style.display=p?'block':'none';}
