@@ -4113,39 +4113,32 @@ async function fetchTranslations() {
 
   try {
     // Only translate non-instrumental, non-empty lines
-    const linesText = lyrs
-      .filter(l => !l.instrumental && l.text && l.text.trim())
-      .map(l => l.text.trim());
+    const linesToTranslate = lyrs.map((l, i) => ({
+      idx: i,
+      text: (!l.instrumental && l.text && l.text.trim()) ? l.text.trim() : null
+    })).filter(l => l.text);
 
-    if (!linesText.length) { _translationLoading = false; resetTranslateBtn(); return; }
+    if (!linesToTranslate.length) { _translationLoading = false; resetTranslateBtn(); return; }
 
-    const prompt = `Terjemahkan lirik lagu berikut ke Bahasa Indonesia secara natural, baris per baris. Jawab HANYA dengan terjemahan, satu baris per satu baris, dengan urutan yang SAMA persis. Jangan tambahkan penjelasan, nomor, atau tanda kutip. Jika baris sudah dalam Bahasa Indonesia, tulis ulang apa adanya.
+    // Translate via Worker proxy ke Google Translate (gratis, tanpa API key)
+    const translateLine = async (text) => {
+      const url = `${WORKER}/translate?text=${encodeURIComponent(text)}&sl=auto&tl=id`;
+      const res = await fetch(url);
+      if (!res.ok) return text;
+      const data = await res.json();
+      return data.translation || text;
+    };
 
-Lirik:
-${linesText.join('\n')}`;
+    // Terjemahkan semua baris secara paralel (batch 5 baris sekaligus)
+    const results = new Array(lyrs.length).fill('');
+    const batchSize = 5;
+    for (let i = 0; i < linesToTranslate.length; i += batchSize) {
+      const batch = linesToTranslate.slice(i, i + batchSize);
+      const translated = await Promise.all(batch.map(l => translateLine(l.text)));
+      batch.forEach((l, j) => { results[l.idx] = translated[j]; });
+    }
 
-    const response = await fetch(`${WORKER}/translate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-
-    const data = await response.json();
-    const rawText = data.content?.[0]?.text || '';
-    const translatedLines = rawText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-
-    // Map translations back to all lines (including instrumental placeholders)
-    let tIdx = 0;
-    const translations = lyrs.map(l => {
-      if (l.instrumental || !l.text || !l.text.trim()) return '';
-      return translatedLines[tIdx++] || '';
-    });
-
-    _translationCache[songKey] = translations;
+    _translationCache[songKey] = results;
     applyTranslationsToDOM();
     showLyrTranslateToast('✅ Terjemahan siap');
   } catch (e) {
