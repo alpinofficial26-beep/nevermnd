@@ -5013,7 +5013,7 @@ function renderRanking(items) {
   c.innerHTML = '';
   items.forEach((pl, i) => {
     const numClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-    const numLabel = i === 0 ? '' : i === 1 ? '' : i === 2 ? '' : (i+1);
+    const numLabel = i === 0 ? '1' : i === 1 ? '2' : i === 2 ? '3' : (i+1);
     const div = document.createElement('div');
     div.className = 'rank-item';
     div.innerHTML = `
